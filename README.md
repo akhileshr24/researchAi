@@ -1,113 +1,112 @@
-# 🔎 ResearchAI — Agentic Research Platform
+# ResearchAI
 
-An AI-powered research assistant that searches the web, extracts relevant information, and generates structured research reports using Large Language Models (LLMs).
+**An AI-powered research and conversational assistant built with Python, FastAPI, LangGraph, Groq and Streamlit.**
 
-Built with **Python, LangGraph, FastAPI, and Streamlit**, ResearchAI is designed to evolve into an extensible AI research platform with future support for RAG, document intelligence, memory, and additional AI tools.
+ResearchAI helps users explore topics through web research, generate structured reports and interact with an AI assistant through a conversational interface.
 
----
+## Application Preview
 
-## ✨ Features
+### Home
+![ResearchAI Home](docs/assets/home.png)
 
-- **AI-Powered Research** — Generate structured research reports from a user query.
-- **Web Search** — Retrieve relevant information using Tavily.
-- **Web Scraping** — Extract readable content from webpages using Trafilatura.
-- **Agent Workflow** — Orchestrate the research pipeline using LangGraph.
-- **Multiple LLM Providers** — Support for Groq, Google Gemini, and NVIDIA-compatible APIs.
-- **REST API** — Expose research functionality through FastAPI.
-- **Interactive UI** — Simple research interface built with Streamlit.
-- **Source References** — Display the webpages used during research.
-- **Report Export** — Download generated reports in Markdown format.
+### Research Mode
+![ResearchAI Research](docs/assets/research_output.png)
 
-## 🖥️ Application Preview
+### Chat Mode
+![ResearchAI Chat](docs/assets/chat_output.png)
 
-### 1. ResearchAI — Frontend
+[View Sample Research Report (PDF)](docs/assets/Report.pdf)
 
-The Streamlit interface allows users to submit research topics and view generated reports.
+## Features
 
-![ResearchAI Frontend](docs/assets/streamlit1.png)
+### Web Research
+- Web search powered by Tavily.
+- Webpage content extraction using Trafilatura.
+- AI-generated research reports using Groq.
+- Research source links.
+- Markdown report download.
 
-### 2. Generated Research Report
+### AI Chat
+- Conversational AI powered by Groq.
+- Context-aware conversation using chat history.
+- Clear chat functionality.
+- Request validation and error handling.
 
-Structured reports with sections, tables, references, and source links.
+### Document Intelligence
+**Coming Soon**
 
-![ResearchAI Report](docs/assets/streamlit2.png)
+Planned PDF-based question answering using:
+- PDF text extraction.
+- Text chunking.
+- Hugging Face embeddings.
+- ChromaDB vector storage.
+- Semantic retrieval.
+- Context-based answers with document references.
 
-### 3. FastAPI Backend
+## Technology Stack
 
-Interactive API documentation and research endpoint.
-
-![FastAPI Documentation](docs/assets/fastapi.png)
-
-### 4. Sample Research Output
-
-[📄 View Sample Research Report (PDF)](docs/assets/final_output.pdf)
-
----
-
-## 🏗️ Architecture
-
-```text
-                 USER
-                   |
-                   v
-            STREAMLIT FRONTEND
-                   |
-                   v
-              FASTAPI
-                   |
-                   v
-            LANGGRAPH AGENT
-                   |
-          +--------+--------+
-          |        |        |
-          v        v        v
-       SEARCH   SCRAPER    LLM
-       TAVILY  TRAFILATURA |
-          |        |       |
-          +--------+-------+
-                   |
-                   v
-           RESEARCH REPORT
-                   |
-                   v
-          FRONTEND + SOURCES
-```
-
-### Research Workflow
-
-1. User submits a research query.
-2. LangGraph starts the research workflow.
-3. Tavily searches for relevant webpages.
-4. Trafilatura extracts webpage content.
-5. The selected LLM analyzes the collected information.
-6. A structured research report is generated.
-7. FastAPI returns the report and source information.
-8. Streamlit displays the final result.
-
----
-
-## 🛠️ Tech Stack
-
-| Category | Technologies |
+| Layer | Technology |
 |---|---|
 | Language | Python |
-| Agent Workflow | LangGraph |
-| LLM Integration | LangChain |
-| LLM Providers | Groq, Gemini, NVIDIA |
-| Web Search | Tavily |
-| Web Scraping | Trafilatura |
-| Backend | FastAPI |
 | Frontend | Streamlit |
-| Data Validation | Pydantic |
+| Backend | FastAPI |
+| AI Workflow | LangGraph |
+| LLM | Groq |
+| Web Search | Tavily |
+| Web Extraction | Trafilatura |
+| Validation | Pydantic |
+| Rate Limiting | SlowAPI |
 | Package Management | uv |
-| Version Control | Git & GitHub |
 
----
-
-## 📂 Project Structure
+## Architecture
 
 ```text
-researchAI/
+                  USER
+                    |
+                    v
+               STREAMLIT UI
+                    |
+                    v
+               FASTAPI API
+                    |
+             +------+------+
+             |             |
+             v             v
+          /chat         /research
+             |             |
+             v             v
+           GROQ         LANGGRAPH
+                           |
+                           v
+                     TAVILY SEARCH
+                           |
+                           v
+                      TRAFILATURA
+                           |
+                           v
+                     EXTRACT CONTENT
+                           |
+                           v
+                         GROQ
+                           |
+                           v
+                   RESEARCH REPORT
+                           |
+                           v
+                      STREAMLIT UI
+```
+
+## Project Structure
+
+```text
+ResearchAI/
+│
+├── docs/
+│   └── assets/
+│       ├── home.png
+│       ├── research_output.png
+│       ├── chat_output.png
+│       └── Report.pdf
 │
 ├── frontend/
 │   └── app.py
@@ -115,31 +114,18 @@ researchAI/
 ├── src/
 │   ├── agent/
 │   │   └── graph.py
-│   │
 │   ├── api/
 │   │   └── api.py
-│   │
 │   ├── config/
 │   │   └── settings.py
-│   │
 │   ├── llm/
 │   │   └── providers.py
-│   │
 │   ├── tools/
 │   │   ├── search.py
 │   │   └── scraper.py
-│   │
 │   └── main.py
 │
 ├── tests/
-│
-├── docs/
-│   └── assets/
-│       ├── fastapi.png
-│       ├── streamlit1.png
-│       ├── streamlit2.png
-│       └── final_output.pdf
-│
 ├── .env.example
 ├── .gitignore
 ├── .python-version
@@ -148,78 +134,59 @@ researchAI/
 └── README.md
 ```
 
----
-
-## ⚙️ Installation & Setup
+## Getting Started
 
 ### Prerequisites
 
-- Python 3.13
-- Git
-- uv package manager
-- API keys for your selected LLM provider
-- Tavily API key
+- Python 3.13 or a version supported by the project configuration.
+- [uv](https://docs.astral.sh/uv/)
+- [Groq API Key](https://console.groq.com/)
+- [Tavily API Key](https://tavily.com/)
 
-### 1. Clone the Repository
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/akhileshr24/researchAi.git
-
 cd researchAi
 ```
 
-### 2. Install Dependencies
+### 2. Install dependencies
 
 ```bash
 uv sync
 ```
 
-### 3. Configure Environment Variables
+### 3. Configure environment variables
 
-Create a `.env` file in the project root.
-
-Use `.env.example` as your reference.
-
-Configure the API keys for your selected providers:
+Create a `.env` file in the project root using `.env.example` as a reference.
 
 ```env
-GROQ_API_KEY=
+GROQ_API_KEY=your_groq_api_key
 GROQ_MODEL=openai/gpt-oss-120b
 
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.5-flash
-
-NVIDIA_API_KEY=
-NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
-NVIDIA_MODEL=nvidia/nemotron-3-ultra-550b-a55b
-
-TAVILY_API_KEY=
-
-PRIMARY_LLM=groq
+TAVILY_API_KEY=your_tavily_api_key
 
 LANGCHAIN_TRACING_V2=false
 LANGSMITH_TRACING=false
 ```
 
-**Security:** Never commit your `.env` file or expose API keys publicly.
+**Important:** Never commit your `.env` file or expose API keys.
 
-### 4. Start the FastAPI Backend
-
-Open the first terminal:
+### 4. Start the backend
 
 ```bash
-uv run uvicorn src.api.api:app --reload
+uv run uvicorn src.main:app --reload
 ```
 
-Backend:
+Backend URL:
 
-`http://localhost:8000`
+`http://127.0.0.1:8000`
 
-API Documentation:
+Interactive API documentation:
 
-`http://localhost:8000/docs`
+`http://127.0.0.1:8000/docs`
 
-### 5. Start the Streamlit Frontend
+### 5. Start the frontend
 
 Open another terminal:
 
@@ -227,76 +194,58 @@ Open another terminal:
 uv run streamlit run frontend/app.py
 ```
 
-Frontend:
+Application URL:
 
 `http://localhost:8501`
 
----
-
-## 🔌 API Endpoints
+## API Reference
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/` | Check API status |
-| POST | `/research` | Generate a research report |
-| GET | `/docs` | Interactive API documentation |
+| GET | `/` | API health response |
+| POST | `/chat` | AI conversational endpoint |
+| POST | `/research` | Web research workflow |
 
-### Example Request
-
-```json
-{
-  "query": "Impact of AI in software engineering"
-}
-```
-
-### Example Response
+### Chat Request
 
 ```json
 {
-  "query": "Impact of AI in software engineering",
-  "report": "Generated research report...",
-  "sources": [
-    {
-      "title": "Research Source",
-      "url": "https://example.com",
-      "content": "Extracted webpage content..."
-    }
-  ]
+  "message": "Explain AI agents",
+  "history": []
 }
 ```
 
----
+### Research Request
 
-## 🚀 Future Roadmap
+```json
+{
+  "query": "The evolution of AI agents"
+}
+```
 
-ResearchAI is being developed incrementally, with a focus on expanding its research capabilities.
+## Security and Reliability
 
-- [ ] Retrieval-Augmented Generation (RAG)
-- [ ] PDF and document uploads
-- [ ] Vector database integration
-- [ ] Conversational memory
-- [ ] Additional research tools
-- [ ] Improved source verification and citation quality
-- [ ] Research history and SQLite persistence
-- [ ] Automated testing
-- [ ] Docker support
-- [ ] Cloud deployment
+- API keys managed through environment variables.
+- Request validation using Pydantic.
+- Safe API error responses.
+- Application logging.
+- Rate limiting using SlowAPI.
+- Sensitive files excluded through `.gitignore`.
 
----
+## Current Scope
 
-## 🎯 Project Goal
+Research and Chat are implemented and available.
 
-The goal of ResearchAI is to build a modular and extensible AI research platform that combines agentic workflows, web intelligence, LLMs, and document retrieval into one application.
+PDF-based RAG functionality is planned for a future development phase and is not currently available.
 
-The long-term vision is to develop a capable research assistant that can search, understand, analyze, and organize information from multiple sources.
+Research results depend on external search results and webpage accessibility. AI-generated information should be independently verified.
 
----
-
-## 👨‍💻 Author
+## Author
 
 **Akhilesh R**
 
-- GitHub: [@akhileshr24](https://github.com/akhileshr24)
-- Project: [ResearchAI](https://github.com/akhileshr24/researchAi)
+[GitHub Profile](https://github.com/akhileshr24) · [ResearchAI Repository](https://github.com/akhileshr24/researchAi)
 
 ---
+
+*Built with Python, FastAPI, LangGraph, Groq and Streamlit.*

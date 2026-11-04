@@ -1,11 +1,12 @@
-
 import streamlit as st
 import requests
 
-API_URL = "http://127.0.0.1:8000/research"
-GITHUB_URL = "https://github.com/akhileshr24"
+# --------------------------------------------------
+# CONFIGURATION
+# --------------------------------------------------
 
-# ---------- PAGE CONFIG ----------
+BASE_URL = "http://127.0.0.1:8000"
+GITHUB_URL = "https://github.com/akhileshr24"
 
 st.set_page_config(
     page_title="ResearchAI",
@@ -14,7 +15,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ---------- CUSTOM CSS ----------
+# --------------------------------------------------
+# STYLING
+# --------------------------------------------------
 
 st.markdown("""
 <style>
@@ -27,48 +30,6 @@ st.markdown("""
         padding: 2rem 2rem 4rem;
     }
 
-    header[data-testid="stHeader"] {
-        background: transparent;
-    }
-
-    .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .brand {
-        font-size: 27px;
-        font-weight: 750;
-        color: #172033;
-        letter-spacing: -1px;
-    }
-
-    .github-link {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        text-decoration: none !important;
-        color: #24292f !important;
-        font-weight: 600;
-        font-size: 15px;
-        padding: 8px 13px;
-        border: 1px solid #E2E8F0;
-        border-radius: 9px;
-        background: white;
-    }
-
-    .github-link:hover {
-        border-color: #2563EB;
-        color: #2563EB !important;
-    }
-
-    .subtitle {
-        color: #64748B;
-        font-size: 14px;
-        margin-top: 5px;
-    }
-
     .section-title {
         color: #172033;
         font-size: 20px;
@@ -77,10 +38,9 @@ st.markdown("""
     }
 
     .stTextInput input {
-        background: #FFFFFF;
+        background: white;
         border: 1px solid #DCE3ED;
         border-radius: 9px;
-        padding: 12px;
     }
 
     div.stButton > button {
@@ -95,11 +55,11 @@ st.markdown("""
     div.stButton > button:hover {
         background: #1D4ED8;
         color: white;
-        border: none;
     }
 
-    a {
-        color: #2563EB;
+    .mode-description {
+        color: #64748B;
+        font-size: 14px;
     }
 
     footer {
@@ -109,139 +69,320 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ---------- HEADER ----------
+# --------------------------------------------------
+# HEADER
+# --------------------------------------------------
 
 st.title("🔎 ResearchAI")
-st.caption("Your intelligent web research workspace")
-
+st.caption("Your intelligent research and chat workspace")
 st.divider()
 
 
-# ---------- RESEARCH INPUT ----------
+# --------------------------------------------------
+# MODE SELECTOR
+# --------------------------------------------------
 
-st.markdown(
-    '<div class="section-title">What would you like to research?</div>',
-    unsafe_allow_html=True
-)
-
-query = st.text_input(
-    "Research topic",
-    placeholder="e.g. Impact of AI agents on backend engineering by 2030",
-    label_visibility="collapsed"
-)
-
-research_button = st.button(
-    "🔍  Start Research",
-    use_container_width=True
+mode = st.segmented_control(
+    "Select Mode",
+    options=["Research", "Chat", "RAG"],
+    default="Research",
+    key="app_mode"
 )
 
 
-# ---------- RESEARCH REQUEST ----------
+# --------------------------------------------------
+# API ERROR HANDLING
+# --------------------------------------------------
 
-if research_button:
+def handle_api_error(response):
+    if response.status_code == 429:
+        st.error("Rate limit exceeded. Please wait and try again.")
 
-    if not query.strip():
-        st.warning("Please enter a research topic.")
+    elif response.status_code == 422:
+        st.error("Invalid request. Please check your input.")
+
+    elif response.status_code >= 500:
+        st.error("Service temporarily unavailable. Please try again.")
 
     else:
-        try:
-            with st.spinner(
-                "Searching the web and preparing your research report..."
-            ):
-                response = requests.post(
-                    API_URL,
-                    json={"query": query.strip()},
-                    timeout=300
-                )
-
-                response.raise_for_status()
-                result = response.json()
-
-                st.session_state["report"] = result["report"]
-                st.session_state["sources"] = result["sources"]
-                st.session_state["query"] = result["query"]
-
-        except requests.RequestException as error:
-            st.error(f"Unable to complete research: {error}")
+        st.error(f"Request failed with status code {response.status_code}.")
 
 
-# ---------- REPORT DISPLAY ----------
+# --------------------------------------------------
+# RESEARCH MODE
+# --------------------------------------------------
 
-if "report" in st.session_state:
+if mode == "Research":
 
-    st.divider()
-
-    st.success("Research completed successfully!")
-
-    col1, col2 = st.columns([3, 1])
-
-    with col1:
-        st.markdown("### Research Report")
-        st.caption(f"Topic: {st.session_state['query']}")
-
-    with col2:
-        st.markdown(
-            f"**{len(st.session_state['sources'])}** sources found"
-        )
-
-    with st.container(border=True):
-        st.markdown(st.session_state["report"])
-
-    # ---------- MARKDOWN DOWNLOAD ----------
-
-    markdown_report = (
-        f"# Research Report\n\n"
-        f"**Topic:** {st.session_state['query']}\n\n"
-        f"{st.session_state['report']}\n\n"
-        f"## Sources\n\n"
+    st.markdown(
+        '<div class="section-title">What would you like to research?</div>',
+        unsafe_allow_html=True
     )
 
-    for source in st.session_state["sources"]:
-        markdown_report += (
-            f"- [{source['title']}]({source['url']})\n"
-        )
-
-    st.download_button(
-        label="⬇ Download Markdown Report",
-        data=markdown_report,
-        file_name="research_report.md",
-        mime="text/markdown"
+    st.markdown(
+        '<p class="mode-description">'
+        'Search the web and generate structured research reports.'
+        '</p>',
+        unsafe_allow_html=True
     )
 
-    # ---------- SOURCES ----------
+    query = st.text_input(
+        "Research topic",
+        placeholder="e.g. Impact of AI agents on software engineering",
+        max_chars=500,
+        label_visibility="collapsed"
+    )
 
-    st.divider()
+    if st.button("🔍 Start Research", use_container_width=True):
 
-    st.markdown("### Research Sources")
-    st.caption("Original webpages used during research.")
+        if len(query.strip()) < 3:
+            st.warning("Enter at least 3 characters.")
 
-    for index, source in enumerate(
-        st.session_state["sources"], start=1
-    ):
-        with st.container(border=True):
-            st.markdown(
-                f"**{index}. [{source['title']}]({source['url']})**"
+        else:
+            try:
+                with st.spinner("Researching the web..."):
+
+                    response = requests.post(
+                        f"{BASE_URL}/research",
+                        json={"query": query.strip()},
+                        timeout=300
+                    )
+
+                if response.ok:
+                    result = response.json()
+
+                    st.session_state["report"] = result["report"]
+                    st.session_state["sources"] = result["sources"]
+                    st.session_state["query"] = result["query"]
+
+                else:
+                    handle_api_error(response)
+
+            except requests.Timeout:
+                st.error("Research request timed out.")
+
+            except requests.ConnectionError:
+                st.error("Cannot connect to the backend. Start FastAPI first.")
+
+            except requests.RequestException:
+                st.error("Unable to complete research.")
+
+    # DISPLAY REPORT
+
+    if "report" in st.session_state:
+
+        st.divider()
+
+        col1, col2 = st.columns([3, 1])
+
+        with col1:
+            st.markdown("### Research Report")
+            st.caption(f"Topic: {st.session_state['query']}")
+
+        with col2:
+            st.metric(
+                "Sources found",
+                len(st.session_state["sources"])
             )
 
-    st.caption(
-        "Verify important research claims against original sources."
+        with st.container(border=True):
+            st.markdown(st.session_state["report"])
+
+        # DOWNLOAD REPORT
+
+        markdown_report = (
+            f"# Research Report\n\n"
+            f"**Topic:** {st.session_state['query']}\n\n"
+            f"{st.session_state['report']}\n\n"
+            f"## Sources\n\n"
+        )
+
+        for source in st.session_state["sources"]:
+            markdown_report += (
+                f"- [{source['title']}]({source['url']})\n"
+            )
+
+        st.download_button(
+            "⬇ Download Markdown Report",
+            data=markdown_report,
+            file_name="research_report.md",
+            mime="text/markdown"
+        )
+
+        # SOURCE LINKS
+
+        st.divider()
+        st.markdown("### Research Sources")
+
+        for index, source in enumerate(
+            st.session_state["sources"],
+            start=1
+        ):
+            with st.container(border=True):
+                st.markdown(
+                    f"**{index}. [{source['title']}]({source['url']})**"
+                )
+
+
+# --------------------------------------------------
+# CHAT MODE
+# --------------------------------------------------
+
+elif mode == "Chat":
+
+    st.markdown("### AI Chat")
+    st.markdown(
+        '<p class="mode-description">'
+        'Ask questions and continue your conversation with ResearchAI.'
+        '</p>',
+        unsafe_allow_html=True
     )
 
+    # INITIALIZE CHAT HISTORY
 
-# ---------- FOOTER ----------
+    if "chat_history" not in st.session_state:
+        st.session_state["chat_history"] = []
+
+    # CLEAR CHAT
+
+    if st.button("🗑 Clear Chat"):
+        st.session_state["chat_history"] = []
+        st.rerun()
+
+    # DISPLAY PREVIOUS MESSAGES
+
+    for message in st.session_state["chat_history"]:
+
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # CHAT INPUT
+
+    user_message = st.chat_input(
+        "Ask ResearchAI anything...",
+        max_chars=1000
+    )
+
+    if user_message:
+
+        user_message = user_message.strip()
+
+        if not user_message:
+            st.warning("Please enter a message.")
+
+        else:
+
+            # SEND PREVIOUS CONVERSATION CONTEXT
+
+            history = st.session_state["chat_history"][-6:]
+
+            try:
+                with st.spinner("Thinking..."):
+
+                    response = requests.post(
+                        f"{BASE_URL}/chat",
+                        json={
+                            "message": user_message,
+                            "history": history
+                        },
+                        timeout=90
+                    )
+
+                if response.ok:
+
+                    result = response.json()
+                    answer = result["response"]
+
+                    # SAVE CONVERSATION
+
+                    st.session_state["chat_history"].append({
+                        "role": "user",
+                        "content": user_message
+                    })
+
+                    st.session_state["chat_history"].append({
+                        "role": "assistant",
+                        "content": answer
+                    })
+
+                    st.rerun()
+
+                else:
+                    handle_api_error(response)
+
+            except requests.Timeout:
+                st.error("Chat request timed out.")
+
+            except requests.ConnectionError:
+                st.error("Cannot connect to the backend.")
+
+            except requests.RequestException:
+                st.error("Unable to complete chat request.")
+
+
+# --------------------------------------------------
+# RAG MODE - PLACEHOLDER
+# --------------------------------------------------
+
+elif mode == "RAG":
+
+    st.markdown("### 📄 Document Intelligence")
+
+    st.markdown(
+        '<p class="mode-description">'
+        'Upload PDF documents and ask questions about their contents.'
+        '</p>',
+        unsafe_allow_html=True
+    )
+
+    st.divider()
+
+    st.markdown("#### Upload your PDF")
+
+    st.file_uploader(
+        "Choose a PDF document",
+        type=["pdf"],
+        disabled=True,
+        help="PDF processing will be enabled in the next development phase."
+    )
+
+    st.info(
+        "🚧 RAG functionality is coming soon. "
+        "PDF processing and document question answering "
+        "are not available yet."
+    )
+
+    st.markdown("#### Planned features")
+
+    features = [
+        "PDF document upload",
+        "Text extraction and chunking",
+        "Hugging Face embeddings",
+        "ChromaDB vector storage",
+        "Semantic document retrieval",
+        "AI answers with document references"
+    ]
+
+    for feature in features:
+        st.markdown(f"- {feature}")
+
+
+# --------------------------------------------------
+# FOOTER
+# --------------------------------------------------
 
 st.divider()
 
 st.markdown(
-    """
+    f"""
     <div style="
         text-align: center;
         color: #94A3B8;
         font-size: 13px;
         padding: 15px 0;
     ">
-        Built with ❤️ by
-        <a href="https://github.com/akhileshr24"
+        Built by
+        <a href="{GITHUB_URL}"
            target="_blank"
            style="
                color: #2563EB;
@@ -251,7 +392,7 @@ st.markdown(
            Akhilesh R
         </a>
         <br>
-        AI Research Assistant · Powered by LangGraph and FastAPI
+        AI Research Assistant · Research · RAG · Chat
     </div>
     """,
     unsafe_allow_html=True
