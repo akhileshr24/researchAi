@@ -17,3 +17,9 @@ __pycache__/
 
 .coverage
 htmlcov/
+
+# Test documents
+docs/assets/test.pdf
+
+# RAG generated data
+data/

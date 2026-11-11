@@ -14,3 +14,11 @@ NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL")
 NVIDIA_MODEL = os.getenv("NVIDIA_MODEL")
 
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+
+# ---------- RAG ----------
+CHROMA_DIR = os.getenv("CHROMA_DIR", "data/chroma")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 150
+MIN_RELEVANCE_SCORE = 0.40
+TOP_K = 4
