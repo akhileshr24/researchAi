@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-12T09:25:15.405710+00:00",
+  "generated_at": "2026-11-12T17:22:34.371632+00:00",
   "labels_verified": true,
   "label_status": "manually reviewed against stored chunk text",
   "configuration": {
@@ -13,30 +13,40 @@
       "Hybrid + Cross-Encoder"
     ]
   },
+  "reproducibility": {
+    "git_commit_sha": "ce11bfdd1efd8bfc30d0085e3d234c36c0dbe308",
+    "python_version": "3.13.16",
+    "lock_file_sha256": "45aae886568727a19bd9cccf963e2a4cfa53f614625c1cfd5f6927c1a5265996",
+    "dataset_sha256": "f3b5c9fd41e16e9cf0e2526b85d42bd262f0b3f3f7c9151db94dc0af4c66abfb"
+  },
   "aggregate": {
     "Vector": {
       "precision@5": 0.31764705882352945,
       "recall@5": 0.6254901960784314,
       "mrr": 0.8235294117647058,
-      "ndcg@5": 0.6405354341057558
+      "ndcg@5": 0.6405354341057558,
+      "mean_latency_ms": 93.034
     },
     "BM25": {
       "precision@5": 0.35294117647058826,
       "recall@5": 0.6941176470588236,
       "mrr": 0.8137254901960784,
-      "ndcg@5": 0.7309117149530552
+      "ndcg@5": 0.7309117149530552,
+      "mean_latency_ms": 69.695
     },
     "Hybrid RRF": {
       "precision@5": 0.3647058823529412,
       "recall@5": 0.7058823529411765,
       "mrr": 0.8529411764705882,
-      "ndcg@5": 0.7228972878950276
+      "ndcg@5": 0.7228972878950276,
+      "mean_latency_ms": 100.149
     },
     "Hybrid + Cross-Encoder": {
       "precision@5": 0.4235294117647059,
       "recall@5": 0.8137254901960784,
       "mrr": 0.8823529411764706,
-      "ndcg@5": 0.8070934739162525
+      "ndcg@5": 0.8070934739162525,
+      "mean_latency_ms": 1003.387
     }
   },
   "questions": [
@@ -68,12 +78,13 @@
             "mrr": 1.0,
             "ndcg@5": 0.991474106402634
           },
+          "latency_ms": 1340.834,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 2,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 3,
               "relevant": true,
@@ -84,7 +95,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 1,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 1,
               "relevant": true,
@@ -95,7 +106,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 4,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 0,
               "relevant": false,
@@ -106,7 +117,7 @@
               "rank": 4,
               "document_id": "890dc7fc62041257",
               "chunk_index": 7,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 1,
               "relevant": true,
@@ -133,12 +144,13 @@
             "mrr": 0.3333333333333333,
             "ndcg@5": 0.4322674052090939
           },
+          "latency_ms": 71.113,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 4,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 0,
               "relevant": false,
@@ -149,7 +161,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -160,7 +172,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 1,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 1,
               "relevant": true,
@@ -171,7 +183,7 @@
               "rank": 4,
               "document_id": "890dc7fc62041257",
               "chunk_index": 2,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 3,
               "relevant": true,
@@ -198,12 +210,13 @@
             "mrr": 0.5,
             "ndcg@5": 0.6522453449933296
           },
+          "latency_ms": 77.057,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 4,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 0,
               "relevant": false,
@@ -214,7 +227,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 2,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 3,
               "relevant": true,
@@ -225,7 +238,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 1,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 1,
               "relevant": true,
@@ -236,7 +249,7 @@
               "rank": 4,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -247,7 +260,7 @@
               "rank": 5,
               "document_id": "890dc7fc62041257",
               "chunk_index": 7,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 1,
               "relevant": true,
@@ -263,12 +276,13 @@
             "mrr": 1.0,
             "ndcg@5": 0.991474106402634
           },
+          "latency_ms": 3609.904,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 2,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 3,
               "relevant": true,
@@ -279,7 +293,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 1,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 1,
               "relevant": true,
@@ -290,7 +304,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -301,7 +315,7 @@
               "rank": 4,
               "document_id": "890dc7fc62041257",
               "chunk_index": 7,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 1,
               "relevant": true,
@@ -312,7 +326,7 @@
               "rank": 5,
               "document_id": "890dc7fc62041257",
               "chunk_index": 4,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 0,
               "relevant": false,
@@ -346,12 +360,13 @@
             "mrr": 1.0,
             "ndcg@5": 0.9173194127129571
           },
+          "latency_ms": 20.456,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 5,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 3,
               "relevant": true,
@@ -362,7 +377,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 9,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 0,
               "relevant": false,
@@ -411,12 +426,13 @@
             "mrr": 1.0,
             "ndcg@5": 0.9173194127129571
           },
+          "latency_ms": 86.954,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 5,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 3,
               "relevant": true,
@@ -476,12 +492,13 @@
             "mrr": 1.0,
             "ndcg@5": 0.9173194127129571
           },
+          "latency_ms": 75.095,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 5,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 3,
               "relevant": true,
@@ -492,7 +509,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 9,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 0,
               "relevant": false,
@@ -541,12 +558,13 @@
             "mrr": 1.0,
             "ndcg@5": 0.9173194127129571
           },
+          "latency_ms": 940.411,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 5,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 3,
               "relevant": true,
@@ -624,12 +642,13 @@
             "mrr": 1.0,
             "ndcg@5": 0.8339912323981488
           },
+          "latency_ms": 40.448,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 11,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 2,
               "relevant": true,
@@ -640,7 +659,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 10,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 3,
               "relevant": true,
@@ -662,7 +681,7 @@
               "rank": 4,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -673,7 +692,7 @@
               "rank": 5,
               "document_id": "890dc7fc62041257",
               "chunk_index": 12,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 0,
               "relevant": false,
@@ -689,12 +708,13 @@
             "mrr": 1.0,
             "ndcg@5": 1.0
           },
+          "latency_ms": 57.71,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 10,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 3,
               "relevant": true,
@@ -705,7 +725,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 11,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 2,
               "relevant": true,
@@ -716,7 +736,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -738,7 +758,7 @@
               "rank": 5,
               "document_id": "890dc7fc62041257",
               "chunk_index": 12,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 0,
               "relevant": false,
@@ -754,12 +774,13 @@
             "mrr": 1.0,
             "ndcg@5": 0.8339912323981488
           },
+          "latency_ms": 77.812,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 11,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 2,
               "relevant": true,
@@ -770,7 +791,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 10,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 3,
               "relevant": true,
@@ -781,7 +802,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -792,7 +813,7 @@
               "rank": 4,
               "document_id": "890dc7fc62041257",
               "chunk_index": 12,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 0,
               "relevant": false,
@@ -819,12 +840,13 @@
             "mrr": 1.0,
             "ndcg@5": 0.95583058934618
           },
+          "latency_ms": 980.701,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 10,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 3,
               "relevant": true,
@@ -835,7 +857,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -846,7 +868,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 11,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 2,
               "relevant": true,
@@ -857,7 +879,7 @@
               "rank": 4,
               "document_id": "890dc7fc62041257",
               "chunk_index": 12,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 0,
               "relevant": false,
@@ -868,7 +890,7 @@
               "rank": 5,
               "document_id": "890dc7fc62041257",
               "chunk_index": 8,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 0,
               "relevant": false,
@@ -902,12 +924,13 @@
             "mrr": 1.0,
             "ndcg@5": 1.0
           },
+          "latency_ms": 12.857,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 6,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 3,
               "relevant": true,
@@ -918,7 +941,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 5,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 1,
               "relevant": true,
@@ -929,7 +952,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 3,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 0,
               "relevant": false,
@@ -951,7 +974,7 @@
               "rank": 5,
               "document_id": "890dc7fc62041257",
               "chunk_index": 9,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 0,
               "relevant": false,
@@ -967,12 +990,13 @@
             "mrr": 1.0,
             "ndcg@5": 1.0
           },
+          "latency_ms": 72.895,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 6,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 3,
               "relevant": true,
@@ -983,7 +1007,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 5,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 1,
               "relevant": true,
@@ -994,7 +1018,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -1005,7 +1029,7 @@
               "rank": 4,
               "document_id": "890dc7fc62041257",
               "chunk_index": 7,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 0,
               "relevant": false,
@@ -1032,12 +1056,13 @@
             "mrr": 1.0,
             "ndcg@5": 1.0
           },
+          "latency_ms": 78.798,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 6,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 3,
               "relevant": true,
@@ -1048,7 +1073,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 5,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 1,
               "relevant": true,
@@ -1059,7 +1084,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 4,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 0,
               "relevant": false,
@@ -1097,12 +1122,13 @@
             "mrr": 1.0,
             "ndcg@5": 1.0
           },
+          "latency_ms": 1068.451,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 6,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 3,
               "relevant": true,
@@ -1113,7 +1139,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 5,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 1,
               "relevant": true,
@@ -1124,7 +1150,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 4,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 0,
               "relevant": false,
@@ -1146,7 +1172,7 @@
               "rank": 5,
               "document_id": "890dc7fc62041257",
               "chunk_index": 7,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 0,
               "relevant": false,
@@ -1175,12 +1201,13 @@
             "mrr": 1.0,
             "ndcg@5": 1.0
           },
+          "latency_ms": 12.482,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 4,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 3,
               "relevant": true,
@@ -1191,7 +1218,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 2,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 0,
               "relevant": false,
@@ -1202,7 +1229,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 1,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 0,
               "relevant": false,
@@ -1224,7 +1251,7 @@
               "rank": 5,
               "document_id": "890dc7fc62041257",
               "chunk_index": 7,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 0,
               "relevant": false,
@@ -1240,12 +1267,13 @@
             "mrr": 1.0,
             "ndcg@5": 1.0
           },
+          "latency_ms": 60.825,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 4,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 3,
               "relevant": true,
@@ -1256,7 +1284,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -1267,7 +1295,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 2,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 0,
               "relevant": false,
@@ -1305,12 +1333,13 @@
             "mrr": 1.0,
             "ndcg@5": 1.0
           },
+          "latency_ms": 71.032,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 4,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 3,
               "relevant": true,
@@ -1321,7 +1350,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 2,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 0,
               "relevant": false,
@@ -1332,7 +1361,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -1343,7 +1372,7 @@
               "rank": 4,
               "document_id": "890dc7fc62041257",
               "chunk_index": 1,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 0,
               "relevant": false,
@@ -1354,7 +1383,7 @@
               "rank": 5,
               "document_id": "890dc7fc62041257",
               "chunk_index": 7,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 0,
               "relevant": false,
@@ -1370,12 +1399,13 @@
             "mrr": 1.0,
             "ndcg@5": 1.0
           },
+          "latency_ms": 679.706,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 4,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 3,
               "grade": 3,
               "relevant": true,
@@ -1386,7 +1416,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 2,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 0,
               "relevant": false,
@@ -1397,7 +1427,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -1408,7 +1438,7 @@
               "rank": 4,
               "document_id": "890dc7fc62041257",
               "chunk_index": 1,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 0,
               "relevant": false,
@@ -1419,7 +1449,7 @@
               "rank": 5,
               "document_id": "890dc7fc62041257",
               "chunk_index": 7,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 0,
               "relevant": false,
@@ -1453,12 +1483,13 @@
             "mrr": 1.0,
             "ndcg@5": 0.1310456303875653
           },
+          "latency_ms": 10.357,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 12,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 1,
               "relevant": true,
@@ -1469,7 +1500,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 10,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 0,
               "relevant": false,
@@ -1502,7 +1533,7 @@
               "rank": 5,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -1518,12 +1549,13 @@
             "mrr": 0.5,
             "ndcg@5": 0.08268058728704288
           },
+          "latency_ms": 57.659,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 10,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 0,
               "relevant": false,
@@ -1534,7 +1566,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 12,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 1,
               "relevant": true,
@@ -1556,7 +1588,7 @@
               "rank": 4,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -1583,12 +1615,13 @@
             "mrr": 1.0,
             "ndcg@5": 0.5261135977086879
           },
+          "latency_ms": 67.621,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 12,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 1,
               "relevant": true,
@@ -1599,7 +1632,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 10,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 0,
               "relevant": false,
@@ -1610,7 +1643,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -1621,7 +1654,7 @@
               "rank": 4,
               "document_id": "890dc7fc62041257",
               "chunk_index": 11,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 3,
               "relevant": true,
@@ -1648,12 +1681,13 @@
             "mrr": 1.0,
             "ndcg@5": 0.7098097413968655
           },
+          "latency_ms": 652.122,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 12,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 1,
               "relevant": true,
@@ -1664,7 +1698,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 11,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 3,
               "relevant": true,
@@ -1675,7 +1709,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -1686,7 +1720,7 @@
               "rank": 4,
               "document_id": "890dc7fc62041257",
               "chunk_index": 10,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 0,
               "relevant": false,
@@ -1731,12 +1765,13 @@
             "mrr": 0.5,
             "ndcg@5": 0.38685280723454163
           },
+          "latency_ms": 11.667,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 7,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 0,
               "relevant": false,
@@ -1747,7 +1782,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 8,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 3,
               "relevant": true,
@@ -1758,7 +1793,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -1780,7 +1815,7 @@
               "rank": 5,
               "document_id": "890dc7fc62041257",
               "chunk_index": 10,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 0,
               "relevant": false,
@@ -1796,12 +1831,13 @@
             "mrr": 0.0,
             "ndcg@5": 0.0
           },
+          "latency_ms": 56.042,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 7,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 0,
               "relevant": false,
@@ -1812,7 +1848,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -1845,7 +1881,7 @@
               "rank": 5,
               "document_id": "890dc7fc62041257",
               "chunk_index": 1,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 0,
               "relevant": false,
@@ -1861,12 +1897,13 @@
             "mrr": 0.0,
             "ndcg@5": 0.0
           },
+          "latency_ms": 68.824,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 7,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 0,
               "relevant": false,
@@ -1877,7 +1914,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -1910,7 +1947,7 @@
               "rank": 5,
               "document_id": "890dc7fc62041257",
               "chunk_index": 12,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 5,
               "grade": 0,
               "relevant": false,
@@ -1926,12 +1963,13 @@
             "mrr": 0.5,
             "ndcg@5": 0.38685280723454163
           },
+          "latency_ms": 688.84,
           "retrieved": [
             {
               "rank": 1,
               "document_id": "890dc7fc62041257",
               "chunk_index": 7,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 0,
               "relevant": false,
@@ -1942,7 +1980,7 @@
               "rank": 2,
               "document_id": "890dc7fc62041257",
               "chunk_index": 8,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 4,
               "grade": 3,
               "relevant": true,
@@ -1953,7 +1991,7 @@
               "rank": 3,
               "document_id": "890dc7fc62041257",
               "chunk_index": 0,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 1,
               "grade": 0,
               "relevant": false,
@@ -1964,7 +2002,7 @@
               "rank": 4,
               "document_id": "890dc7fc62041257",
               "chunk_index": 3,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 0,
               "relevant": false,
@@ -1975,7 +2013,7 @@
               "rank": 5,
               "document_id": "890dc7fc62041257",
               "chunk_index": 1,
-              "filename": "test.pdf",
+              "filename": "Report.pdf",
               "page": 2,
               "grade": 0,
               "relevant": false,
@@ -2009,6 +2047,7 @@
             "mrr": 0.5,
             "ndcg@5": 0.38685280723454163
           },
+          "latency_ms": 10.79,
           "retrieved": [
             {
               "rank": 1,
@@ -2074,6 +2113,7 @@
             "mrr": 0.5,
             "ndcg@5": 0.6934264036172708
           },
+          "latency_ms": 77.886,
           "retrieved": [
             {
               "rank": 1,
@@ -2139,6 +2179,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.9197207891481876
           },
+          "latency_ms": 88.666,
           "retrieved": [
             {
               "rank": 1,
@@ -2204,6 +2245,7 @@
             "mrr": 1.0,
             "ndcg@5": 1.0
           },
+          "latency_ms": 788.932,
           "retrieved": [
             {
               "rank": 1,
@@ -2292,6 +2334,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.7452525342261976
           },
+          "latency_ms": 10.774,
           "retrieved": [
             {
               "rank": 1,
@@ -2357,6 +2400,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.8688109777822237
           },
+          "latency_ms": 80.288,
           "retrieved": [
             {
               "rank": 1,
@@ -2422,6 +2466,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.882808018370203
           },
+          "latency_ms": 77.399,
           "retrieved": [
             {
               "rank": 1,
@@ -2487,6 +2532,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.9049495058460971
           },
+          "latency_ms": 731.161,
           "retrieved": [
             {
               "rank": 1,
@@ -2580,6 +2626,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.7610549474692552
           },
+          "latency_ms": 12.926,
           "retrieved": [
             {
               "rank": 1,
@@ -2645,6 +2692,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.8267614993006938
           },
+          "latency_ms": 68.509,
           "retrieved": [
             {
               "rank": 1,
@@ -2710,6 +2758,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.8380129575602214
           },
+          "latency_ms": 87.397,
           "retrieved": [
             {
               "rank": 1,
@@ -2775,6 +2824,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.7274395411852893
           },
+          "latency_ms": 728.772,
           "retrieved": [
             {
               "rank": 1,
@@ -2868,6 +2918,7 @@
             "mrr": 0.5,
             "ndcg@5": 0.5158280401979596
           },
+          "latency_ms": 10.652,
           "retrieved": [
             {
               "rank": 1,
@@ -2933,6 +2984,7 @@
             "mrr": 0.5,
             "ndcg@5": 0.28777318596453655
           },
+          "latency_ms": 65.273,
           "retrieved": [
             {
               "rank": 1,
@@ -2998,6 +3050,7 @@
             "mrr": 0.5,
             "ndcg@5": 0.28777318596453655
           },
+          "latency_ms": 86.618,
           "retrieved": [
             {
               "rank": 1,
@@ -3063,6 +3116,7 @@
             "mrr": 0.5,
             "ndcg@5": 0.48420894531089653
           },
+          "latency_ms": 1126.429,
           "retrieved": [
             {
               "rank": 1,
@@ -3151,6 +3205,7 @@
             "mrr": 0.0,
             "ndcg@5": 0.0
           },
+          "latency_ms": 14.04,
           "retrieved": [
             {
               "rank": 1,
@@ -3216,6 +3271,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.7852134991855584
           },
+          "latency_ms": 87.776,
           "retrieved": [
             {
               "rank": 1,
@@ -3281,6 +3337,7 @@
             "mrr": 0.5,
             "ndcg@5": 0.42495889834839423
           },
+          "latency_ms": 188.249,
           "retrieved": [
             {
               "rank": 1,
@@ -3346,6 +3403,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.7136205775898136
           },
+          "latency_ms": 947.546,
           "retrieved": [
             {
               "rank": 1,
@@ -3429,6 +3487,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.7871546029909718
           },
+          "latency_ms": 13.108,
           "retrieved": [
             {
               "rank": 1,
@@ -3494,6 +3553,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.7871546029909718
           },
+          "latency_ms": 59.98,
           "retrieved": [
             {
               "rank": 1,
@@ -3559,6 +3619,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.7871546029909718
           },
+          "latency_ms": 114.482,
           "retrieved": [
             {
               "rank": 1,
@@ -3624,6 +3685,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.7871546029909718
           },
+          "latency_ms": 775.998,
           "retrieved": [
             {
               "rank": 1,
@@ -3707,6 +3769,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.3373519727104165
           },
+          "latency_ms": 12.684,
           "retrieved": [
             {
               "rank": 1,
@@ -3772,6 +3835,7 @@
             "mrr": 1.0,
             "ndcg@5": 1.0
           },
+          "latency_ms": 63.868,
           "retrieved": [
             {
               "rank": 1,
@@ -3837,6 +3901,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.3373519727104165
           },
+          "latency_ms": 77.595,
           "retrieved": [
             {
               "rank": 1,
@@ -3902,6 +3967,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.95583058934618
           },
+          "latency_ms": 807.432,
           "retrieved": [
             {
               "rank": 1,
@@ -3985,6 +4051,7 @@
             "mrr": 0.5,
             "ndcg@5": 0.5787641110093001
           },
+          "latency_ms": 12.088,
           "retrieved": [
             {
               "rank": 1,
@@ -4050,6 +4117,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.9173194127129571
           },
+          "latency_ms": 73.082,
           "retrieved": [
             {
               "rank": 1,
@@ -4115,6 +4183,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.9173194127129571
           },
+          "latency_ms": 306.041,
           "retrieved": [
             {
               "rank": 1,
@@ -4180,6 +4249,7 @@
             "mrr": 0.5,
             "ndcg@5": 0.5787641110093001
           },
+          "latency_ms": 918.887,
           "retrieved": [
             {
               "rank": 1,
@@ -4268,6 +4338,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.8252901585453934
           },
+          "latency_ms": 14.318,
           "retrieved": [
             {
               "rank": 1,
@@ -4333,6 +4404,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.929544338806268
           },
+          "latency_ms": 67.151,
           "retrieved": [
             {
               "rank": 1,
@@ -4398,6 +4470,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.9799889788426704
           },
+          "latency_ms": 70.546,
           "retrieved": [
             {
               "rank": 1,
@@ -4463,6 +4536,7 @@
             "mrr": 0.5,
             "ndcg@5": 0.6432170197276813
           },
+          "latency_ms": 791.846,
           "retrieved": [
             {
               "rank": 1,
@@ -4561,6 +4635,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.6908700162779643
           },
+          "latency_ms": 21.105,
           "retrieved": [
             {
               "rank": 1,
@@ -4626,6 +4701,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.8972278286323637
           },
+          "latency_ms": 77.797,
           "retrieved": [
             {
               "rank": 1,
@@ -4691,6 +4767,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.9844954897537884
           },
+          "latency_ms": 89.303,
           "retrieved": [
             {
               "rank": 1,
@@ -4756,6 +4833,7 @@
             "mrr": 1.0,
             "ndcg@5": 0.9641175064768847
           },
+          "latency_ms": 820.434,
           "retrieved": [
             {
               "rank": 1,

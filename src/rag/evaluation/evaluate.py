@@ -6,14 +6,19 @@ Run with::
 
 The evaluation is deliberately independent of the LLM: it measures whether the
 labelled chunks appear in each method's top results. Results are printed as an
-aggregate table with per-question diagnostics and saved as JSON under
-``reports/rag_evaluation/``.
+aggregate table with per-question diagnostics, and one run generates all three
+reports under ``reports/rag_evaluation/``: the detailed JSON results, a JSON
+summary and a Markdown report.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
-from dataclasses import dataclass
+import subprocess
+import sys
+import time
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from statistics import fmean
@@ -33,6 +38,7 @@ from src.rag.evaluation.metrics import (
     recall_at_k,
     reciprocal_rank,
 )
+from src.rag.evaluation.report import write_markdown_report
 from src.rag.hybrid_retriever import search_hybrid
 from src.rag.reranker import rerank
 from src.rag.vectorstore import get_all_chunks, search
@@ -42,6 +48,9 @@ VECTOR_MIN_SCORE = 0.0
 CANDIDATE_LIMIT = RERANK_CANDIDATES
 REPORT_DIR = Path("reports/rag_evaluation")
 REPORT_PATH = REPORT_DIR / "evaluation_results.json"
+SUMMARY_PATH = REPORT_DIR / "evaluation_summary.json"
+MARKDOWN_PATH = REPORT_DIR / "latest.md"
+LOCK_FILE_PATH = Path("uv.lock")
 METRIC_KEYS = ("precision@5", "recall@5", "mrr", "ndcg@5")
 
 METHODS: tuple[tuple[str, str], ...] = (
@@ -74,6 +83,7 @@ class MethodResult:
     method: str
     retrieved: list[RetrievedItem]
     metrics: dict[str, float]
+    latency_ms: float = 0.0
 
 
 @dataclass
@@ -96,6 +106,73 @@ def _score(chunk: dict) -> float | None:
         if key in chunk:
             return float(chunk[key])
     return None
+
+
+# REPRODUCIBILITY METADATA
+
+
+def _git_commit_sha() -> str:
+    """Return the current Git commit SHA, or "" when Git is unavailable."""
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+    if completed.returncode != 0:
+        return ""
+
+    return completed.stdout.strip()
+
+
+def _python_version() -> str:
+    """Return the running Python version, e.g. ``3.13.16``."""
+    return sys.version.split()[0]
+
+
+def _sha256_of_file(path: Path) -> str:
+    """Return the SHA-256 hex digest of a file's bytes."""
+    digest = hashlib.sha256()
+
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(65536), b""):
+            digest.update(block)
+
+    return digest.hexdigest()
+
+
+def _lock_file_hash() -> str:
+    """Return the SHA-256 of ``uv.lock``, or "" when it does not exist."""
+    if not LOCK_FILE_PATH.is_file():
+        return ""
+
+    return _sha256_of_file(LOCK_FILE_PATH)
+
+
+def _dataset_hash() -> str:
+    """Return a stable SHA-256 of the canonical dataset representation."""
+    payload = json.dumps(
+        [asdict(question) for question in get_questions()],
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def reproducibility_metadata() -> dict[str, str]:
+    """Return the reproducibility block shared by all generated reports."""
+    return {
+        "git_commit_sha": _git_commit_sha(),
+        "python_version": _python_version(),
+        "lock_file_sha256": _lock_file_hash(),
+        "dataset_sha256": _dataset_hash(),
+    }
 
 
 def retrieve(method: str, question: str) -> list[dict]:
@@ -135,7 +212,9 @@ def evaluate_question(question: EvaluationQuestion) -> QuestionResult:
     method_results: dict[str, MethodResult] = {}
 
     for method_name, method_id in METHODS:
+        started = time.perf_counter()
         chunks = retrieve(method_id, question.question)
+        latency_ms = round((time.perf_counter() - started) * 1000.0, 3)
         retrieved_keys = [_chunk_key(chunk) for chunk in chunks]
 
         retrieved = [
@@ -156,6 +235,7 @@ def evaluate_question(question: EvaluationQuestion) -> QuestionResult:
         method_results[method_name] = MethodResult(
             method=method_name,
             retrieved=retrieved,
+            latency_ms=max(latency_ms, 0.0),
             metrics={
                 "precision@5": precision_at_k(
                     retrieved_keys,
@@ -194,7 +274,12 @@ def evaluate_question(question: EvaluationQuestion) -> QuestionResult:
 def aggregate_metrics(
     results: list[QuestionResult],
 ) -> dict[str, dict[str, float]]:
-    """Return the mean of each metric, grouped by retrieval method."""
+    """Return the mean of each metric and of retrieval latency, by method.
+
+    ``mean_latency_ms`` is the arithmetic mean of the per-question
+    ``latency_ms`` values. Both JSON reports copy these aggregates, so the
+    two files can never disagree on metric or latency values.
+    """
     if not results:
         raise ValueError("Cannot aggregate an empty result set")
 
@@ -205,6 +290,14 @@ def aggregate_metrics(
                 for result in results
             )
             for metric in METRIC_KEYS
+        } | {
+            "mean_latency_ms": round(
+                fmean(
+                    result.methods[method_name].latency_ms
+                    for result in results
+                ),
+                3,
+            ),
         }
         for method_name, _ in METHODS
     }
@@ -225,6 +318,7 @@ def build_report(
             "vector_min_score": VECTOR_MIN_SCORE,
             "methods": [name for name, _ in METHODS],
         },
+        "reproducibility": reproducibility_metadata(),
         "aggregate": aggregate,
         "questions": [
             {
@@ -234,6 +328,7 @@ def build_report(
                 "methods": {
                     method_name: {
                         "metrics": result.methods[method_name].metrics,
+                        "latency_ms": result.methods[method_name].latency_ms,
                         "retrieved": [
                             {
                                 "rank": item.rank,
@@ -254,6 +349,28 @@ def build_report(
             }
             for result in results
         ],
+    }
+
+
+def build_summary(report: dict, corpus_chunks: int) -> dict:
+    """Derive the evaluation summary from the detailed report.
+
+    Aggregate metric and latency values are copied from ``report``
+    unchanged; nothing is recalculated, so both JSON files always describe
+    the same evaluation run with identical values.
+    """
+    method_names = report["configuration"]["methods"]
+
+    return {
+        "generated_at": report["generated_at"],
+        "dataset_size": len(report["questions"]),
+        "corpus_chunks": corpus_chunks,
+        "configuration": report["configuration"],
+        "reproducibility": report["reproducibility"],
+        "aggregate_metrics": {
+            method_name: dict(report["aggregate"][method_name])
+            for method_name in method_names
+        },
     }
 
 
@@ -319,32 +436,35 @@ def print_question_results(results: list[QuestionResult]) -> None:
             )
 
 
-def _stored_chunk_keys() -> set[tuple[str, int]]:
-    return {_chunk_key(chunk) for chunk in get_all_chunks()}
-
-
 def main() -> None:
-    """Run the full evaluation, print diagnostics and save the JSON report."""
+    """Run the evaluation and generate all three reports from one run."""
     questions = get_questions()
-    validate_dataset(questions, _stored_chunk_keys())
+    chunks = get_all_chunks()
+    validate_dataset(questions, {_chunk_key(chunk) for chunk in chunks})
 
     results = [evaluate_question(question) for question in questions]
     aggregate = aggregate_metrics(results)
+    report = build_report(results, aggregate)
+    summary = build_summary(report, corpus_chunks=len(chunks))
 
     print_summary(aggregate)
     print_question_results(results)
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
+
     REPORT_PATH.write_text(
-        json.dumps(
-            build_report(results, aggregate),
-            indent=2,
-            ensure_ascii=False,
-        ),
+        json.dumps(report, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
+    SUMMARY_PATH.write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    write_markdown_report(MARKDOWN_PATH, report, corpus_chunks=len(chunks))
 
     print(f"\nJSON report: {REPORT_PATH}")
+    print(f"JSON summary: {SUMMARY_PATH}")
+    print(f"Markdown report: {MARKDOWN_PATH}")
 
     if not LABELS_VERIFIED:
         print(
