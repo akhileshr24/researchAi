@@ -32,16 +32,16 @@ ResearchAI helps users explore topics through web research, generate structured 
 - Clear chat functionality.
 - Request validation and error handling.
 
-### 3. Document Intelligence
-**Coming Soon**
-
-Planned PDF-based question answering with:
-- PDF text extraction.
-- Text chunking.
-- Hugging Face embeddings.
-- ChromaDB vector storage.
-- Semantic retrieval.
-- Context-based answers with document references.
+### 3. Document Intelligence (Hybrid RAG)
+- PDF text extraction with `pypdf`.
+- Recursive character chunking with page and document metadata.
+- Hugging Face `all-MiniLM-L6-v2` embeddings.
+- Persistent ChromaDB vector storage.
+- Dense vector search combined with BM25 keyword search.
+- Reciprocal Rank Fusion (RRF) of both ranked lists.
+- Cross-encoder reranking with `ms-marco-MiniLM-L-6-v2`.
+- Context-only answers with filename and page citations.
+- Duplicate-safe ingestion, document listing, replacement and deletion.
 
 ## Technology Stack
 
@@ -54,6 +54,11 @@ Planned PDF-based question answering with:
 | LLM | Groq |
 | Web Search | Tavily |
 | Web Extraction | Trafilatura |
+| PDF Parsing | pypdf |
+| Embeddings | sentence-transformers `all-MiniLM-L6-v2` |
+| Vector Store | ChromaDB |
+| Keyword Search | rank-bm25 |
+| Reranking | cross-encoder `ms-marco-MiniLM-L-6-v2` |
 | Validation | Pydantic |
 | Rate Limiting | SlowAPI |
 | Package Management | uv |
@@ -97,6 +102,40 @@ Planned PDF-based question answering with:
                            STREAMLIT UI
 ```
 
+### Hybrid RAG Pipeline
+
+```text
+PDF FILES
+    |
+    v
+pypdf TEXT EXTRACTION
+    |
+    v
+RECURSIVE CHARACTER CHUNKING
+    |
+    v
+all-MiniLM-L6-v2 EMBEDDINGS
+    |
+    v
+PERSISTENT CHROMADB
+    |
+    +------------------------------+
+    |                              |
+    v                              v
+VECTOR SEARCH                  BM25 KEYWORD SEARCH
+    |                              |
+    +--------------+---------------+
+                   |
+                   v
+       RECIPROCAL RANK FUSION (RRF)
+                   |
+                   v
+        CROSS-ENCODER RERANKING
+                   |
+                   v
+     TOP-K CONTEXT --> LLM --> ANSWER + CITATIONS
+```
+
 ## Project Structure
 
 ```text
@@ -121,10 +160,23 @@ ResearchAI/
 │   │   └── settings.py
 │   ├── llm/
 │   │   └── providers.py
+│   ├── rag/
+│   │   ├── loader.py
+│   │   ├── chunker.py
+│   │   ├── vectorstore.py
+│   │   ├── bm25_retriever.py
+│   │   ├── hybrid_retriever.py
+│   │   ├── reranker.py
+│   │   ├── ingestion.py
+│   │   ├── qa.py
+│   │   └── tests/
 │   ├── tools/
 │   │   ├── search.py
 │   │   └── scraper.py
 │   └── main.py
+│
+├── data/
+│   └── chroma/        # generated, gitignored
 │
 ├── tests/
 │   └── test_api.py
@@ -215,6 +267,29 @@ Application URL:
 
 http://localhost:8501
 
+### 6. Use the hybrid RAG pipeline
+
+```python
+from src.rag.ingestion import ingest_pdf
+from src.rag.qa import ask_question
+from src.rag.vectorstore import delete_document, list_documents
+
+result = ingest_pdf("docs/assets/test.pdf")
+print(result["status"], result["total_chunks"])
+
+print(list_documents())
+
+answer = ask_question("What is retrieval-augmented generation?")
+print(answer["answer"])
+print(answer["sources"])
+
+delete_document(result["document_id"])
+```
+
+Re-ingesting the same file is skipped automatically. Pass `replace=True` to
+`ingest_pdf()` to rebuild a document, or delete it by `document_id`.
+The QA step uses the configured `GROQ_API_KEY`.
+
 ## API Reference
 
 | Method | Endpoint | Description |
@@ -242,13 +317,23 @@ http://localhost:8501
 
 ## Testing
 
-ResearchAI includes automated API tests using Pytest.
+ResearchAI includes automated API and RAG tests using Pytest.
 
-Run the test suite:
+Run the full test suite:
 
 ```bash
 uv run pytest
 ```
+
+Run only the RAG tests:
+
+```bash
+uv run pytest src/rag/tests
+```
+
+The RAG integration test uses the real embedding and cross-encoder models
+(cached locally by Hugging Face). The LLM call is replaced with a fake, so
+no API key is needed for tests.
 
 Run tests with coverage:
 
@@ -258,11 +343,14 @@ uv run pytest --cov=src --cov-report=term-missing
 
 The tests cover:
 - API endpoint responses.
-- Request validation.
-- Missing and invalid inputs.
-- Error handling.
-- Rate limiting.
-- Chat history validation.
+- Request validation, error handling and rate limiting.
+- PDF extraction and invalid/empty PDF handling.
+- Chunk metadata and overlap.
+- ChromaDB storage, search, replacement and deletion.
+- BM25 ranking and document filtering.
+- RRF fusion and cross-encoder reranking.
+- Ingestion deduplication and multi-document search.
+- Answers, source citations and empty retrieval.
 
 ## Security and Reliability
 
@@ -278,15 +366,13 @@ The tests cover:
 **Implemented:**
 - Web Research
 - AI Chat
+- Hybrid RAG (ingestion, vector + BM25 retrieval, RRF, reranking, citations)
 - FastAPI backend
 - Streamlit interface
-- Automated API tests
+- Automated API and RAG tests
 
 **Planned:**
-- PDF-based RAG
-- Document question answering
-- Semantic retrieval
-- Context-based document references
+- RAG API endpoints and Streamlit document UI (the RAG modules are ready to wire in)
 
 Research results depend on external search results and webpage accessibility. AI-generated information should be independently verified.
 

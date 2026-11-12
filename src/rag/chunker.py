@@ -1,28 +1,44 @@
+"""Split page text into overlapping chunks for retrieval."""
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from src.config.settings import CHUNK_SIZE, CHUNK_OVERLAP
+from src.config.settings import CHUNK_OVERLAP, CHUNK_SIZE
 
 
-def chunk_pages(pages, filename):
+def chunk_pages(
+    pages: list[dict],
+    filename: str,
+    document_id: str,
+    chunk_size: int = CHUNK_SIZE,
+    chunk_overlap: int = CHUNK_OVERLAP,
+) -> list[dict]:
+    """Create chunks that keep document, page and position metadata."""
+    if not pages:
+        return []
+
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=CHUNK_SIZE,
-        chunk_overlap=CHUNK_OVERLAP,
-        add_start_index=True
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        add_start_index=True,
     )
 
     chunks = []
 
     for page in pages:
-        documents = splitter.create_documents([page["text"]])
+        for document in splitter.create_documents([page["text"]]):
+            text = document.page_content.strip()
 
-        for index, document in enumerate(documents):
+            if not text:
+                continue
+
             chunks.append({
-                "text": document.page_content,
+                "text": text,
                 "page": page["page"],
                 "filename": filename,
-                "chunk_index": index,
-                "start_index": document.metadata["start_index"]
+                "document_id": document_id,
+                "chunk_index": len(chunks),
+                "start_index": document.metadata.get("start_index", 0),
+                "total_pages": len(pages),
             })
 
     return chunks

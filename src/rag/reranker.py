@@ -1,53 +1,41 @@
+"""Rerank retrieved candidates with a cross-encoder model."""
 
 from functools import lru_cache
 
 from sentence_transformers import CrossEncoder
 
-from src.rag.hybrid_retriever import search_hybrid
-from src.config.settings import TOP_K
-
-
-RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+from src.config.settings import RERANKER_MODEL, TOP_K
 
 
 @lru_cache(maxsize=1)
-def get_reranker():
+def get_reranker() -> CrossEncoder:
     return CrossEncoder(RERANKER_MODEL)
 
 
-def rerank_hybrid(question, top_k=TOP_K, candidate_k=10):
+def rerank(
+    query: str,
+    candidates: list[dict],
+    top_k: int = TOP_K,
+) -> list[dict]:
+    """Score query/chunk pairs and return the best chunks."""
+    query = query.strip()
 
-    # 1. Retrieve candidate chunks using Hybrid Search
-    candidates = search_hybrid(
-        question,
-        top_k=candidate_k
-    )
-
-    if not candidates:
+    if not query or not candidates or top_k <= 0:
         return []
 
-    # 2. Create query-document pairs
-    pairs = [
-        (question, chunk["text"])
-        for chunk in candidates
-    ]
+    pairs = [(query, candidate["text"]) for candidate in candidates]
+    scores = get_reranker().predict(pairs)
 
-    # 3. Calculate relevance scores
-    model = get_reranker()
-    scores = model.predict(pairs)
+    ranked = []
 
-    # 4. Attach reranking scores
-    ranked_results = []
+    for candidate, score in zip(candidates, scores):
+        result = candidate.copy()
+        result["rerank_score"] = round(float(score), 6)
+        ranked.append(result)
 
-    for chunk, score in zip(candidates, scores):
-        result = chunk.copy()
-        result["rerank_score"] = float(score)
-        ranked_results.append(result)
-
-    # 5. Sort by reranking score
-    ranked_results.sort(
-        key=lambda item: item["rerank_score"],
-        reverse=True
+    ranked.sort(
+        key=lambda result: result["rerank_score"],
+        reverse=True,
     )
 
-    return ranked_results[:top_k]
+    return ranked[:top_k]

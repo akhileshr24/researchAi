@@ -1,35 +1,188 @@
+"""Tests for ChromaDB storage, search and document management."""
 
-from src.rag.loader import load_pdf
-from src.rag.chunker import chunk_pages
-from src.rag.vectorstore import add_chunks, search
+import pytest
 
-PDF_PATH = "docs/assets/test.pdf"
+from src.rag.vectorstore import (
+    add_chunks,
+    delete_document,
+    get_all_chunks,
+    get_document,
+    list_documents,
+    search,
+)
 
-# Load PDF
-pages = load_pdf(PDF_PATH)
 
-# Create chunks
-chunks = chunk_pages(pages, PDF_PATH)
+def test_add_and_search_chunks(temp_store, chunk_factory):
+    add_chunks([
+        chunk_factory(
+            text="Vector search uses embeddings to find similar text.",
+            chunk_index=0,
+        ),
+        chunk_factory(
+            text="BM25 ranks keyword matches with term frequencies.",
+            chunk_index=1,
+        ),
+    ])
 
-# Store in ChromaDB
-add_chunks(chunks)
+    results = search("vector search")
 
-print("Chunks stored successfully!")
+    assert results
+    assert "Vector search" in results[0]["text"]
+    assert results[0]["filename"] == "a.pdf"
+    assert results[0]["page"] == 1
+    assert results[0]["document_id"] == "doc-a"
+    assert "score" in results[0]
 
-# Test different questions
-questions = [
-    "What is machine learning?",
-    "What is deep learning?",
-    "What is quantum computing?"
-]
 
-for question in questions:
-    print(f"\nQUESTION: {question}")
+def test_search_returns_empty_for_empty_store(temp_store):
+    assert search("anything") == []
 
-    results = search(question)
 
-    for result in results:
-        print("\nPage:", result["page"])
-        print("Chunk:", result["chunk_index"])
-        print("Score:", result["score"])
-        print("Text:", result["text"][:200])
+def test_search_returns_empty_for_empty_query(temp_store, chunk_factory):
+    add_chunks([chunk_factory()])
+
+    assert search("   ") == []
+
+
+def test_search_filters_by_document(temp_store, chunk_factory):
+    add_chunks([
+        chunk_factory(text="vector search in document a", chunk_index=0),
+    ])
+    add_chunks([
+        chunk_factory(
+            text="vector search in document b",
+            document_id="doc-b",
+            filename="b.pdf",
+            chunk_index=0,
+        ),
+    ])
+
+    results = search("vector search", document_id="doc-b")
+
+    assert results
+    assert all(result["document_id"] == "doc-b" for result in results)
+
+
+def test_reingesting_a_document_replaces_old_chunks(temp_store, chunk_factory):
+    add_chunks([
+        chunk_factory(text="first version", chunk_index=0),
+        chunk_factory(text="first version second chunk", chunk_index=1),
+    ])
+
+    add_chunks([
+        chunk_factory(text="replacement version", chunk_index=0),
+    ])
+
+    assert len(get_all_chunks()) == 1
+    assert list_documents()[0]["total_chunks"] == 1
+
+
+def test_list_documents_reports_counts(temp_store, chunk_factory):
+    add_chunks([
+        chunk_factory(text="page one", chunk_index=0, page=1),
+        chunk_factory(text="page two", chunk_index=1, page=2),
+    ])
+    add_chunks([
+        chunk_factory(
+            text="other document",
+            document_id="doc-b",
+            filename="b.pdf",
+            chunk_index=0,
+        ),
+    ])
+
+    documents = list_documents()
+
+    assert [document["filename"] for document in documents] == [
+        "a.pdf",
+        "b.pdf",
+    ]
+    assert documents[0]["total_chunks"] == 2
+    assert documents[0]["total_pages"] == 2
+
+
+def test_get_document_summary(temp_store, chunk_factory):
+    add_chunks([
+        chunk_factory(text="page one", chunk_index=0, page=1),
+        chunk_factory(text="page two", chunk_index=1, page=2),
+    ])
+
+    document = get_document("doc-a")
+
+    assert document == {
+        "document_id": "doc-a",
+        "filename": "a.pdf",
+        "total_chunks": 2,
+        "total_pages": 2,
+    }
+    assert get_document("missing") is None
+
+
+def test_list_and_get_document_use_stored_total_pages(
+    temp_store,
+    chunk_factory,
+):
+    add_chunks([
+        chunk_factory(
+            text="Only text page",
+            chunk_index=0,
+            page=1,
+            total_pages=2,
+        ),
+    ])
+
+    assert list_documents()[0]["total_pages"] == 2
+    assert get_document("doc-a")["total_pages"] == 2
+
+
+def test_failed_upsert_keeps_existing_document(
+    temp_store,
+    chunk_factory,
+    monkeypatch,
+):
+    add_chunks([chunk_factory(text="original content", chunk_index=0)])
+
+    class FailingUpsert:
+        def __init__(self, collection):
+            self._collection = collection
+
+        def __getattr__(self, name):
+            return getattr(self._collection, name)
+
+        def upsert(self, *args, **kwargs):
+            raise RuntimeError("upsert failed")
+
+    monkeypatch.setattr(
+        "src.rag.vectorstore._get_collection",
+        lambda: FailingUpsert(temp_store),
+    )
+
+    with pytest.raises(RuntimeError, match="upsert failed"):
+        add_chunks([chunk_factory(text="new content", chunk_index=0)])
+
+    remaining = get_all_chunks()
+
+    assert len(remaining) == 1
+    assert remaining[0]["text"] == "original content"
+
+
+def test_delete_document(temp_store, chunk_factory):
+    add_chunks([chunk_factory()])
+
+    assert delete_document("doc-a") is True
+    assert delete_document("doc-a") is False
+    assert get_all_chunks() == []
+
+
+def test_add_chunks_rejects_empty_and_mixed_documents(
+    temp_store,
+    chunk_factory,
+):
+    with pytest.raises(ValueError, match="empty list"):
+        add_chunks([])
+
+    with pytest.raises(ValueError, match="same document"):
+        add_chunks([
+            chunk_factory(document_id="doc-a", chunk_index=0),
+            chunk_factory(document_id="doc-b", chunk_index=0),
+        ])

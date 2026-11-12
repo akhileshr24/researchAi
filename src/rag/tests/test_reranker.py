@@ -1,21 +1,56 @@
+"""Tests for cross-encoder reranking."""
 
-from src.rag.reranker import rerank_hybrid
+from src.rag import reranker
 
-questions = [
-    "What is quantum computing?",
-    "What is machine learning?",
-    "What is the capital of Japan?",
-]
 
-for question in questions:
-    print("\nQUESTION:", question)
+class FakeReranker:
+    def __init__(self, scores):
+        self.scores = scores
+        self.pairs = []
 
-    results = rerank_hybrid(question)
+    def predict(self, pairs):
+        self.pairs = pairs
+        return self.scores
 
-    for rank, result in enumerate(results, start=1):
-        print(
-            f"\nRank: {rank}"
-            f" | Score: {result['rerank_score']:.4f}"
-            f" | Page: {result['page']}"
-        )
-        print("Text:", result["text"][:200])
+
+def test_rerank_sorts_by_cross_encoder_score(monkeypatch, chunk_factory):
+    candidates = [
+        chunk_factory(text="weak match", chunk_index=0),
+        chunk_factory(text="strong match", chunk_index=1),
+        chunk_factory(text="negative match", chunk_index=2),
+    ]
+    fake = FakeReranker([0.2, 0.9, -1.5])
+    monkeypatch.setattr(reranker, "get_reranker", lambda: fake)
+
+    results = reranker.rerank("query", candidates, top_k=2)
+
+    assert [result["text"] for result in results] == [
+        "strong match",
+        "weak match",
+    ]
+    assert results[0]["rerank_score"] == 0.9
+    assert fake.pairs == [
+        ("query", "weak match"),
+        ("query", "strong match"),
+        ("query", "negative match"),
+    ]
+
+
+def test_rerank_returns_empty_for_no_candidates(monkeypatch):
+    monkeypatch.setattr(
+        reranker,
+        "get_reranker",
+        lambda: (_ for _ in ()).throw(AssertionError("must not load model")),
+    )
+
+    assert reranker.rerank("query", []) == []
+
+
+def test_rerank_returns_empty_for_empty_query(monkeypatch, chunk_factory):
+    monkeypatch.setattr(
+        reranker,
+        "get_reranker",
+        lambda: (_ for _ in ()).throw(AssertionError("must not load model")),
+    )
+
+    assert reranker.rerank("  ", [chunk_factory()]) == []

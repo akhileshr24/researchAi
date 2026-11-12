@@ -1,127 +1,234 @@
+"""Persistent ChromaDB storage and vector search."""
+
+from functools import lru_cache
+from pathlib import Path
 
 import chromadb
+from chromadb import Collection
 from langchain_huggingface import HuggingFaceEmbeddings
 
-from src.config.settings import CHROMA_DIR, EMBEDDING_MODEL, TOP_K, MIN_RELEVANCE_SCORE
-
-
-
-# Initialize embedding model and ChromaDB
-embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
-
-client = chromadb.PersistentClient(path=CHROMA_DIR)
-
-collection = client.get_or_create_collection(
-    name="documents",
-    metadata={"hnsw:space": "cosine"}
+from src.config.settings import (
+    CHROMA_DIR,
+    EMBEDDING_MODEL,
+    MIN_RELEVANCE_SCORE,
+    TOP_K,
 )
 
-
-# Store chunks
-
-
-import hashlib
+COLLECTION_NAME = "rag_chunks"
 
 
-def add_chunks(chunks):
+@lru_cache(maxsize=1)
+def _get_embeddings() -> HuggingFaceEmbeddings:
+    return HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+
+
+@lru_cache(maxsize=1)
+def _get_collection() -> Collection:
+    Path(CHROMA_DIR).mkdir(parents=True, exist_ok=True)
+    client = chromadb.PersistentClient(path=CHROMA_DIR)
+    return client.get_or_create_collection(
+        name=COLLECTION_NAME,
+        metadata={"hnsw:space": "cosine"},
+    )
+
+
+def _to_chunk(text: str, metadata: dict, score: float | None = None) -> dict:
+    """Convert ChromaDB output into the metadata shape used by retrievers."""
+    chunk = {
+        "text": text,
+        "document_id": metadata["document_id"],
+        "filename": metadata["filename"],
+        "page": metadata["page"],
+        "chunk_index": metadata["chunk_index"],
+        "start_index": metadata["start_index"],
+        "total_pages": metadata.get("total_pages", metadata["page"]),
+    }
+
+    if score is not None:
+        chunk["score"] = score
+
+    return chunk
+
+
+def add_chunks(chunks: list[dict]) -> int:
+    """Store one document's chunks, replacing its previous chunks if any.
+
+    Embeddings are computed and new chunks are upserted before stale chunks
+    are deleted, so a failed embedding or upsert keeps the previous document.
+    """
     if not chunks:
-        return
+        raise ValueError("Cannot add an empty list of chunks")
+
+    document_ids = {chunk["document_id"] for chunk in chunks}
+
+    if len(document_ids) != 1:
+        raise ValueError("All chunks must belong to the same document")
+
+    document_id = document_ids.pop()
+    collection = _get_collection()
 
     texts = [chunk["text"] for chunk in chunks]
+    embeddings = _get_embeddings().embed_documents(texts)
 
-    # Generate a stable document ID
-    filename = chunks[0]["filename"]
-    document_id = hashlib.sha256(
-        filename.encode("utf-8")
-    ).hexdigest()[:16]
-
-    # Generate unique chunk IDs
-    ids = [
-        f"{document_id}-{chunk['page']}-{chunk['chunk_index']}"
+    new_ids = [
+        f"{document_id}-{chunk['chunk_index']}"
         for chunk in chunks
     ]
-
-    # Store additional metadata
-    metadata = [
-        {
-            "page": chunk["page"],
-            "filename": chunk["filename"],
-            "document_id": document_id,
-            "chunk_index": chunk["chunk_index"],
-            "start_index": chunk["start_index"]
-        }
-        for chunk in chunks
-    ]
-
-    vectors = embeddings.embed_documents(texts)
-
-    # Remove old chunks before re-indexing this document
-    collection.delete(
-        where={"document_id": document_id}
+    old_ids = set(
+        collection.get(
+            where={"document_id": document_id},
+            include=[],
+        )["ids"]
     )
 
     collection.upsert(
-        ids=ids,
+        ids=new_ids,
         documents=texts,
-        embeddings=vectors,
-        metadatas=metadata
+        embeddings=embeddings,
+        metadatas=[
+            {
+                "document_id": document_id,
+                "filename": chunk["filename"],
+                "page": chunk["page"],
+                "chunk_index": chunk["chunk_index"],
+                "start_index": chunk["start_index"],
+                "total_pages": chunk.get("total_pages", chunk["page"]),
+            }
+            for chunk in chunks
+        ],
     )
 
+    stale_ids = old_ids - set(new_ids)
+
+    if stale_ids:
+        collection.delete(ids=sorted(stale_ids))
+
+    return len(chunks)
 
 
-# Search relevant chunks
+def search(
+    query: str,
+    top_k: int = TOP_K,
+    document_id: str | None = None,
+    min_score: float = MIN_RELEVANCE_SCORE,
+) -> list[dict]:
+    """Return the most similar chunks, optionally restricted to one document."""
+    query = query.strip()
 
+    if not query or top_k <= 0:
+        return []
 
-def search(question, top_k=TOP_K):
-    query_vector = embeddings.embed_query(question)
+    collection = _get_collection()
 
-    results = collection.query(
-        query_embeddings=[query_vector],
-        n_results=top_k
-    )
+    if collection.count() == 0:
+        return []
+
+    query_args = {
+        "query_embeddings": [_get_embeddings().embed_query(query)],
+        "n_results": top_k,
+    }
+
+    if document_id:
+        query_args["where"] = {"document_id": document_id}
+
+    results = collection.query(**query_args)
+    documents = results.get("documents") or []
+
+    if not documents or not documents[0]:
+        return []
 
     matches = []
 
-    if not results["documents"] or not results["documents"][0]:
-        return matches
+    for text, metadata, distance in zip(
+        documents[0],
+        results["metadatas"][0],
+        results["distances"][0],
+    ):
+        score = round(1 - distance, 4)
 
-    for i, text in enumerate(results["documents"][0]):
-        metadata = results["metadatas"][0][i]
-        score = round(1 - results["distances"][0][i], 3)
-
-        # Ignore low-relevance chunks
-        if score < MIN_RELEVANCE_SCORE:
+        if score < min_score:
             continue
 
-        matches.append({
-            "text": text,
-            "page": metadata["page"],
-            "filename": metadata["filename"],
-            "chunk_index": metadata["chunk_index"],
-            "start_index": metadata["start_index"],
-            "score": score
-        })
+        matches.append(_to_chunk(text, metadata, score))
 
     return matches
 
-# Get all stored chunks from ChromaDB
-def get_all_chunks():
-    results = collection.get(
-        include=["documents", "metadatas"]
-    )
 
-    chunks = []
+def get_all_chunks() -> list[dict]:
+    """Load every stored chunk. Used to build the BM25 index."""
+    collection = _get_collection()
 
-    for text, metadata in zip(
-        results["documents"],
-        results["metadatas"]
-    ):
-        chunks.append({
-            "text": text,
-            "page": metadata["page"],
-            "filename": metadata["filename"],
-            "chunk_index": metadata["chunk_index"],
-            "start_index": metadata["start_index"]
+    if collection.count() == 0:
+        return []
+
+    results = collection.get(include=["documents", "metadatas"])
+    documents = results.get("documents") or []
+
+    return [
+        _to_chunk(text, metadata)
+        for text, metadata in zip(documents, results["metadatas"])
+    ]
+
+
+def list_documents() -> list[dict]:
+    """List ingested documents with their chunk and page counts."""
+    documents = {}
+
+    for chunk in get_all_chunks():
+        document_id = chunk["document_id"]
+        document = documents.setdefault(document_id, {
+            "document_id": document_id,
+            "filename": chunk["filename"],
+            "total_chunks": 0,
+            "total_pages": 0,
         })
 
-    return chunks
+        document["total_chunks"] += 1
+        document["total_pages"] = max(
+            document["total_pages"],
+            chunk["total_pages"],
+        )
+
+    return sorted(
+        documents.values(),
+        key=lambda document: document["filename"].lower(),
+    )
+
+
+def get_document(document_id: str) -> dict | None:
+    """Return one document's summary, or None when it is not stored."""
+    collection = _get_collection()
+    results = collection.get(
+        where={"document_id": document_id},
+        include=["metadatas"],
+    )
+
+    if not results["ids"]:
+        return None
+
+    metadatas = results["metadatas"]
+
+    return {
+        "document_id": document_id,
+        "filename": metadatas[0]["filename"],
+        "total_chunks": len(metadatas),
+        "total_pages": max(
+            metadata.get("total_pages", metadata["page"])
+            for metadata in metadatas
+        ),
+    }
+
+
+def delete_document(document_id: str) -> bool:
+    """Delete a document. Return False when it does not exist."""
+    collection = _get_collection()
+    results = collection.get(
+        where={"document_id": document_id},
+        include=[],
+    )
+
+    if not results["ids"]:
+        return False
+
+    collection.delete(where={"document_id": document_id})
+    return True
