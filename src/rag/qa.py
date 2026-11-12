@@ -18,13 +18,13 @@ def _build_context(results: list[dict]) -> str:
 
 def _collect_sources(results: list[dict]) -> list[dict]:
     unique_sources = {
-        (result["filename"], result["page"])
+        (result["filename"], result["page"], result["chunk_index"])
         for result in results
     }
 
     return [
-        {"filename": filename, "page": page}
-        for filename, page in sorted(unique_sources)
+        {"filename": filename, "page": page, "chunk_index": chunk_index}
+        for filename, page, chunk_index in sorted(unique_sources)
     ]
 
 
@@ -32,14 +32,22 @@ def ask_question(
     question: str,
     provider: str = "groq",
     top_k: int = TOP_K,
+    document_id: str | None = None,
 ) -> dict:
-    """Retrieve context, rerank it and ask the configured LLM."""
+    """Retrieve context, rerank it and ask the configured LLM.
+
+    ``document_id`` optionally restricts retrieval to one ingested document.
+    """
     question = question.strip()
 
     if not question:
         raise ValueError("Question cannot be empty")
 
-    candidates = search_hybrid(question, top_k=RERANK_CANDIDATES)
+    candidates = search_hybrid(
+        question,
+        top_k=RERANK_CANDIDATES,
+        document_id=document_id,
+    )
     results = [
         result
         for result in rerank(question, candidates, top_k=top_k)

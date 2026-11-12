@@ -91,5 +91,8 @@ def test_full_pipeline_with_two_pdfs(tmp_path, pdf_factory, monkeypatch):
     answer = qa.ask_question(question)
 
     assert answer["answer"] == "Grounded answer [ai.pdf, page 2]"
-    assert {"filename": "ai.pdf", "page": 2} in answer["sources"]
+    assert any(
+        source["filename"] == "ai.pdf" and source["page"] == 2
+        for source in answer["sources"]
+    )
     assert "reciprocal rank fusion" in fake_llm.prompts[0]

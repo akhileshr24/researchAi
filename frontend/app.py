@@ -1,3 +1,5 @@
+import os
+
 import streamlit as st
 import requests
 
@@ -5,7 +7,7 @@ import requests
 # CONFIGURATION
 # --------------------------------------------------
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 GITHUB_URL = "https://github.com/akhileshr24"
 
 st.set_page_config(
@@ -106,6 +108,65 @@ def handle_api_error(response):
 
     else:
         st.error(f"Request failed with status code {response.status_code}.")
+
+
+# --------------------------------------------------
+# RAG API HELPERS
+# --------------------------------------------------
+
+RAG_TIMEOUTS = {
+    "upload": 600,  # ingestion chunks and embeds the whole PDF
+    "query": 300,   # retrieval, reranking and LLM answer generation
+    "manage": 60,   # document listing and deletion
+}
+
+
+def rag_api_call(method, endpoint, timeout, **kwargs):
+    """Call a RAG endpoint, returning the response or None after an error."""
+    try:
+        return requests.request(
+            method,
+            f"{BASE_URL}{endpoint}",
+            timeout=timeout,
+            **kwargs
+        )
+
+    except requests.Timeout:
+        st.error("The request timed out. Please try again.")
+
+    except requests.ConnectionError:
+        st.error("Cannot connect to the backend. Start FastAPI first.")
+
+    except requests.RequestException:
+        st.error("Unable to complete the request.")
+
+    return None
+
+
+def load_indexed_documents():
+    """Return the indexed documents, or an empty list on failure."""
+    response = rag_api_call(
+        "GET",
+        "/rag/documents",
+        RAG_TIMEOUTS["manage"]
+    )
+
+    if response is None:
+        return []
+
+    if response.ok:
+        return response.json()["documents"]
+
+    handle_api_error(response)
+    return []
+
+
+def format_document_label(document):
+    return (
+        f"{document['filename']} "
+        f"({document['total_pages']} pages, "
+        f"{document['total_chunks']} chunks)"
+    )
 
 
 # --------------------------------------------------
@@ -321,50 +382,223 @@ elif mode == "Chat":
 
 
 # --------------------------------------------------
-# RAG MODE - PLACEHOLDER
+# RAG MODE - PDF RAG ASSISTANT
 # --------------------------------------------------
 
 elif mode == "RAG":
 
-    st.markdown("### 📄 Document Intelligence")
+    st.markdown(
+        '<div class="section-title">PDF RAG Assistant</div>',
+        unsafe_allow_html=True
+    )
 
     st.markdown(
         '<p class="mode-description">'
-        'Upload PDF documents and ask questions about their contents.'
+        'Upload PDF documents, manage the index and ask questions '
+        'about their contents.'
         '</p>',
         unsafe_allow_html=True
     )
 
+    # DOCUMENT MANAGEMENT
+
+    st.markdown("#### 📚 Indexed Documents")
+
+    documents = load_indexed_documents()
+
+    if documents:
+
+        for document in documents:
+            with st.container(border=True):
+                col1, col2 = st.columns([3, 2])
+
+                with col1:
+                    st.markdown(f"**📄 {document['filename']}**")
+                    st.caption(f"ID: {document['document_id']}")
+
+                with col2:
+                    st.caption(
+                        f"{document['total_pages']} pages · "
+                        f"{document['total_chunks']} chunks"
+                    )
+
+        # DELETE DOCUMENT
+
+        delete_options = {
+            f"{document['filename']} · {document['document_id'][:8]}":
+                document["document_id"]
+            for document in documents
+        }
+
+        selected_label = st.selectbox(
+            "Document to delete",
+            list(delete_options.keys()),
+            key="rag_delete_selection"
+        )
+
+        if st.button("🗑 Delete Selected Document"):
+            with st.spinner("Deleting document..."):
+                response = rag_api_call(
+                    "DELETE",
+                    f"/rag/documents/{delete_options[selected_label]}",
+                    RAG_TIMEOUTS["manage"]
+                )
+
+            if response is not None:
+                if response.ok:
+                    st.success(f"Deleted: {selected_label}")
+                    st.rerun()
+                else:
+                    handle_api_error(response)
+
+    else:
+        st.info(
+            "No documents indexed yet. Upload a PDF below to get started."
+        )
+
     st.divider()
 
-    st.markdown("#### Upload your PDF")
+    # PDF UPLOAD
 
-    st.file_uploader(
+    st.markdown("#### ⬆ Upload a PDF")
+
+    uploaded_file = st.file_uploader(
         "Choose a PDF document",
         type=["pdf"],
-        disabled=True,
-        help="PDF processing will be enabled in the next development phase."
+        help="The PDF is chunked, embedded and stored in the vector index."
     )
 
-    st.info(
-        "🚧 RAG functionality is coming soon. "
-        "PDF processing and document question answering "
-        "are not available yet."
-    )
+    if uploaded_file is not None:
+        st.caption(
+            f"Selected: {uploaded_file.name} "
+            f"({uploaded_file.size / 1024:.0f} KB)"
+        )
 
-    st.markdown("#### Planned features")
+        if st.button("⬆ Upload and Index", use_container_width=True):
+            with st.spinner("Uploading and indexing PDF..."):
+                response = rag_api_call(
+                    "POST",
+                    "/rag/upload",
+                    RAG_TIMEOUTS["upload"],
+                    files={
+                        "file": (
+                            uploaded_file.name,
+                            uploaded_file.getvalue(),
+                            "application/pdf"
+                        )
+                    }
+                )
 
-    features = [
-        "PDF document upload",
-        "Text extraction and chunking",
-        "Hugging Face embeddings",
-        "ChromaDB vector storage",
-        "Semantic document retrieval",
-        "AI answers with document references"
+            if response is not None:
+                if response.ok:
+                    result = response.json()
+
+                    if result["status"] == "skipped":
+                        st.info(
+                            f"ℹ {result['message']}. "
+                            f"{result['filename']} is already indexed."
+                        )
+                    else:
+                        st.success(
+                            f"✅ Indexed {result['filename']} "
+                            f"({result['total_pages']} pages, "
+                            f"{result['total_chunks']} chunks)."
+                        )
+
+                    st.rerun()
+                else:
+                    handle_api_error(response)
+
+    st.divider()
+
+    # QUESTION ANSWERING
+
+    st.markdown("#### 💬 Ask a Question")
+
+    scope_options = ["All indexed documents"] + [
+        format_document_label(document) for document in documents
     ]
 
-    for feature in features:
-        st.markdown(f"- {feature}")
+    scope = st.selectbox(
+        "Query scope",
+        scope_options,
+        key="rag_query_scope"
+    )
+
+    if scope == "All indexed documents":
+        document_id = None
+    else:
+        document_id = next(
+            document["document_id"]
+            for document in documents
+            if format_document_label(document) == scope
+        )
+
+    question = st.text_input(
+        "Your question",
+        placeholder="e.g. What is retrieval-augmented generation?",
+        max_chars=1000,
+        label_visibility="collapsed"
+    )
+
+    if st.button("🔍 Ask Question", use_container_width=True):
+
+        if not question.strip():
+            st.warning("Enter a question first.")
+
+        else:
+            payload = {"question": question.strip()}
+
+            if document_id is not None:
+                payload["document_id"] = document_id
+
+            with st.spinner("Searching documents and generating answer..."):
+                response = rag_api_call(
+                    "POST",
+                    "/rag/query",
+                    RAG_TIMEOUTS["query"],
+                    json=payload
+                )
+
+            if response is not None:
+                if response.ok:
+                    st.session_state["rag_result"] = response.json()
+                else:
+                    handle_api_error(response)
+
+    # ANSWER DISPLAY
+
+    if "rag_result" in st.session_state:
+
+        result = st.session_state["rag_result"]
+
+        st.divider()
+
+        st.markdown("### Answer")
+
+        with st.container(border=True):
+            st.markdown(result["answer"])
+
+        # SOURCE CITATIONS
+
+        st.markdown("### Source Citations")
+
+        if result["sources"]:
+
+            for index, source in enumerate(result["sources"], start=1):
+                with st.container(border=True):
+                    st.markdown(
+                        f"**{index}. {source['filename']}** — "
+                        f"page {source['page']}"
+                    )
+                    st.caption(
+                        f"Chunk index: {source.get('chunk_index', 'n/a')}"
+                    )
+
+        else:
+            st.caption(
+                "No sources found for this question in the indexed documents."
+            )
 
 
 # --------------------------------------------------

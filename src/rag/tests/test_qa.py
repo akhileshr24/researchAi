@@ -49,7 +49,7 @@ def test_ask_question_builds_context_and_citations(
     monkeypatch.setattr(
         qa,
         "search_hybrid",
-        lambda question, top_k: candidates,
+        lambda question, top_k, document_id=None: candidates,
     )
     monkeypatch.setattr(
         qa,
@@ -64,8 +64,9 @@ def test_ask_question_builds_context_and_citations(
 
     assert answer["answer"] == "Grounded answer [a.pdf, page 1]"
     assert answer["sources"] == [
-        {"filename": "a.pdf", "page": 1},
-        {"filename": "b.pdf", "page": 2},
+        {"filename": "a.pdf", "page": 1, "chunk_index": 0},
+        {"filename": "a.pdf", "page": 1, "chunk_index": 1},
+        {"filename": "b.pdf", "page": 2, "chunk_index": 0},
     ]
     assert "First relevant fact." in fake_llm.prompts[0]
     assert "a.pdf, page 1" in fake_llm.prompts[0]
@@ -76,7 +77,7 @@ def test_ask_question_handles_empty_retrieval(monkeypatch):
     monkeypatch.setattr(
         qa,
         "search_hybrid",
-        lambda question, top_k: [],
+        lambda question, top_k, document_id=None: [],
     )
     monkeypatch.setattr(
         qa,
@@ -122,7 +123,7 @@ def test_ask_question_filters_irrelevant_results(monkeypatch, chunk_factory):
     monkeypatch.setattr(
         qa,
         "search_hybrid",
-        lambda question, top_k: [relevant, irrelevant],
+        lambda question, top_k, document_id=None: [relevant, irrelevant],
     )
     monkeypatch.setattr(
         qa,
@@ -133,7 +134,9 @@ def test_ask_question_filters_irrelevant_results(monkeypatch, chunk_factory):
 
     answer = qa.ask_question("What is a relevant fact?")
 
-    assert answer["sources"] == [{"filename": "a.pdf", "page": 1}]
+    assert answer["sources"] == [
+        {"filename": "a.pdf", "page": 1, "chunk_index": 0}
+    ]
     assert "Relevant fact." in fake_llm.prompts[0]
     assert "Irrelevant fact." not in fake_llm.prompts[0]
 
@@ -150,7 +153,7 @@ def test_ask_question_returns_no_answer_when_all_results_are_irrelevant(
     monkeypatch.setattr(
         qa,
         "search_hybrid",
-        lambda question, top_k: [irrelevant],
+        lambda question, top_k, document_id=None: [irrelevant],
     )
     monkeypatch.setattr(
         qa,
@@ -169,3 +172,17 @@ def test_ask_question_returns_no_answer_when_all_results_are_irrelevant(
         "answer": qa.NO_ANSWER,
         "sources": [],
     }
+
+
+def test_ask_question_passes_document_filter(monkeypatch):
+    seen = {}
+
+    def fake_search_hybrid(question, top_k, document_id=None):
+        seen["document_id"] = document_id
+        return []
+
+    monkeypatch.setattr(qa, "search_hybrid", fake_search_hybrid)
+
+    qa.ask_question("Unknown question", document_id="doc-b")
+
+    assert seen["document_id"] == "doc-b"
