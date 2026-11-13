@@ -2,14 +2,14 @@
 
 **An AI-powered research assistant and document question-answering application, built with Python 3.13, FastAPI, LangGraph, Streamlit and a hybrid retrieval pipeline.**
 
-> **At a glance.** ResearchAI unifies web research and document-grounded question answering behind one FastAPI + Streamlit stack. The retrieval layer combines dense (Sentence Transformers + ChromaDB) and sparse (BM25) search with weighted Reciprocal Rank Fusion, then reranks candidates with a cross-encoder before answering. A reproducible 17-question evaluation is committed alongside the code — Hybrid + Cross-Encoder reaches **nDCG@5 = 0.807** and **Recall@5 = 0.814** at approximately **1.04 s mean retrieval latency**. Full results: [Baseline results](#baseline-results).
+> **At a glance.** ResearchAI unifies web research and document-grounded question answering behind one FastAPI + Streamlit stack. The retrieval layer combines dense (Sentence Transformers + ChromaDB) and sparse (BM25) search with weighted Reciprocal Rank Fusion, then reranks candidates with a cross-encoder before answering. A reproducible 17-question evaluation is committed alongside the code. Hybrid + Cross-Encoder reaches **nDCG@5 = 0.807** and **Recall@5 = 0.814** at approximately **1.04 s mean retrieval latency**. Full results: [Baseline results](#baseline-results).
 
 ResearchAI combines two capabilities in one application:
 
-1. **Research Assistant** — runs a LangGraph workflow that searches the web with Tavily, extracts page content with Trafilatura, and generates a structured research report with an LLM.
-2. **Hybrid RAG** — ingests PDFs into a persistent vector store, retrieves with both dense embeddings and BM25, fuses the two rankings with weighted Reciprocal Rank Fusion (RRF), reranks candidates with a cross-encoder, and returns grounded answers with source citations (filename, page, chunk index).
+1. **Research Assistant** runs a LangGraph workflow that searches the web with Tavily, extracts page content with Trafilatura, and generates a structured research report with an LLM.
+2. **Hybrid RAG** ingests PDFs into a persistent vector store, retrieves with both dense embeddings and BM25, fuses the two rankings with weighted Reciprocal Rank Fusion (RRF), reranks candidates with a cross-encoder, and returns grounded answers with source citations (filename, page, chunk index).
 
-The retrieval pipeline is backed by an **evaluation framework** (17 manually graded questions, four retrieval methods, nDCG/MRR/precision/recall metrics and reproducibility metadata) — see [Retrieval evaluation](#retrieval-evaluation).
+The retrieval pipeline is backed by an **evaluation framework** (17 manually graded questions, four retrieval methods, nDCG/MRR/precision/recall metrics and reproducibility metadata). See [Retrieval evaluation](#retrieval-evaluation).
 
 ## Features
 
@@ -28,13 +28,13 @@ The retrieval pipeline is backed by an **evaluation framework** (17 manually gra
 
 ```mermaid
 flowchart TB
-    UI["Streamlit frontend<br/>Research · Chat · RAG tabs"]
+    UI["Streamlit frontend<br/>Research - Chat - RAG tabs"]
 
     subgraph backend["FastAPI backend (src/api)"]
-        RL["SlowAPI rate limiting<br/>chat 10/min · research 3/min<br/>upload 10/min · query 20/min"]
+        RL["SlowAPI rate limiting<br/>chat 10/min - research 3/min<br/>upload 10/min - query 20/min"]
         CHAT["POST /chat"]
         RES["POST /research"]
-        RAG["RAG endpoints<br/>POST /rag/upload · POST /rag/query<br/>GET /rag/documents · DELETE /rag/documents/:id"]
+        RAG["RAG endpoints<br/>POST /rag/upload - POST /rag/query<br/>GET /rag/documents - DELETE /rag/documents/:id"]
     end
 
     subgraph research["LangGraph research workflow (src/agent)"]
@@ -43,11 +43,11 @@ flowchart TB
     end
 
     subgraph rag["Hybrid RAG pipeline (src/rag)"]
-        INGEST["PDF ingestion (pypdf)<br/>1,000-char chunks · 150 overlap<br/>content-hash document IDs"]
+        INGEST["PDF ingestion (pypdf)<br/>1,000-char chunks - 150 overlap<br/>content-hash document IDs"]
         VDB[("ChromaDB (persistent)<br/>all-MiniLM-L6-v2 embeddings")]
         BM25["BM25 index (rank-bm25)"]
-        FUSION["Weighted Reciprocal Rank Fusion<br/>K = 60 · weights 1.0 / 1.0"]
-        RERANK["Cross-encoder reranker<br/>ms-marco-MiniLM-L-6-v2 · 20 candidates"]
+        FUSION["Weighted Reciprocal Rank Fusion<br/>K = 60 - weights 1.0 / 1.0"]
+        RERANK["Cross-encoder reranker<br/>ms-marco-MiniLM-L-6-v2 - 20 candidates"]
         ANSWER["Grounded answer + citations"]
 
         INGEST --> VDB
@@ -58,7 +58,7 @@ flowchart TB
         RERANK --> ANSWER
     end
 
-    LLM["LLM via get_llm()<br/>Groq (default) · Gemini · NVIDIA"]
+    LLM["LLM via get_llm()<br/>Groq (default) - Gemini - NVIDIA"]
 
     UI --> backend
     CHAT --> LLM
@@ -103,60 +103,60 @@ flowchart TB
 
 ```text
 researchAi/
-│
-├── frontend/
-│   └── app.py
-│
-├── src/
-│   ├── main.py
-│   │
-│   ├── agent/
-│   │   └── graph.py
-│   │
-│   ├── api/
-│   │   ├── api.py
-│   │   ├── rag_routes.py
-│   │   └── rate_limit.py
-│   │
-│   ├── config/
-│   │   └── settings.py
-│   │
-│   ├── llm/
-│   │   └── providers.py
-│   │
-│   ├── tools/
-│   │   ├── search.py
-│   │   └── scraper.py
-│   │
-│   └── rag/
-│       ├── evaluation/
-│       │   ├── dataset.py
-│       │   ├── evaluate.py
-│       │   ├── metrics.py
-│       │   └── report.py
-│       ├── tests/
-│       ├── hybrid_retriever.py
-│       └── ...
-│
-├── tests/
-│   ├── test_api.py
-│   └── test_rag_api.py
-│
-├── scripts/
-│   ├── check_eval.py
-│   └── debug_retrieval.py
-│
-├── reports/
-│   └── rag_evaluation/
-│
-├── docs/
-│   └── assets/
-│
-├── .env.example
-├── .python-version
-├── pyproject.toml
-├── uv.lock
-└── README.md
+|
++-- frontend/
+|   +-- app.py
+|
++-- src/
+|   +-- main.py
+|   |
+|   +-- agent/
+|   |   +-- graph.py
+|   |
+|   +-- api/
+|   |   +-- api.py
+|   |   +-- rag_routes.py
+|   |   +-- rate_limit.py
+|   |
+|   +-- config/
+|   |   +-- settings.py
+|   |
+|   +-- llm/
+|   |   +-- providers.py
+|   |
+|   +-- tools/
+|   |   +-- search.py
+|   |   +-- scraper.py
+|   |
+|   +-- rag/
+|       +-- evaluation/
+|       |   +-- dataset.py
+|       |   +-- evaluate.py
+|       |   +-- metrics.py
+|       |   +-- report.py
+|       +-- tests/
+|       +-- hybrid_retriever.py
+|       +-- ...
+|
++-- tests/
+|   +-- test_api.py
+|   +-- test_rag_api.py
+|
++-- scripts/
+|   +-- check_eval.py
+|   +-- debug_retrieval.py
+|
++-- reports/
+|   +-- rag_evaluation/
+|
++-- docs/
+|   +-- assets/
+|
++-- .env.example
++-- .python-version
++-- pyproject.toml
++-- uv.lock
++-- README.md
 ```
 
 ## Getting started
@@ -198,7 +198,7 @@ Add the API keys for the providers and services you want to use.
 | `GROQ_API_KEY` | **Required** for chat, research reports and RAG answers (default provider) |
 | `GROQ_MODEL` | Groq model ID (defaults to `openai/gpt-oss-120b`) |
 | `TAVILY_API_KEY` | **Required for research mode** (Tavily web search) |
-| `PRIMARY_LLM` | **Declared in the template but not read by the current code** — provider selection happens via the `get_llm(provider=...)` argument, which defaults to `"groq"` |
+| `PRIMARY_LLM` | **Declared in the template but not read by the current code** - provider selection happens via the `get_llm(provider=...)` argument, which defaults to `"groq"` |
 | `GEMINI_API_KEY` | Optional Google provider (`get_llm("gemini")`) |
 | `GEMINI_MODEL` | Gemini model ID (defaults to `gemini-2.5-flash`) |
 | `NVIDIA_API_KEY` | Optional NVIDIA provider (`get_llm("nvidia")`) |
@@ -269,10 +269,10 @@ Use `/docs` for the interactive API documentation and the exact request and resp
 
 | Input | Constraint |
 |---|---|
-| Chat message | 1–1,000 characters |
+| Chat message | 1 to 1,000 characters |
 | Chat history | Maximum 6 history items |
-| Research query | 3–500 characters |
-| RAG question | 1–1,000 characters |
+| Research query | 3 to 500 characters |
+| RAG question | 1 to 1,000 characters |
 | Document ID | Maximum 64 characters |
 
 ### Rate limits
@@ -322,7 +322,7 @@ The relevance labels were manually reviewed against the stored chunk text. The e
 
 ### Baseline results
 
-<small>Baseline generated on 12 November 2026. Commit: `c80a1cc1ba408f8df0141b0d5542987bff75ba28` (tag `p1-baseline`).</small>
+Baseline generated on 12 November 2026. Commit: `c80a1cc1ba408f8df0141b0d5542987bff75ba28` (tag `p1-baseline`).
 
 | Retrieval method | Precision@5 | Recall@5 | MRR | nDCG@5 | Mean latency |
 |---|---:|---:|---:|---:|---:|
@@ -419,7 +419,7 @@ The reports include retrieval metrics and reproducibility information such as th
 
 ![RAG answer](docs/assets/rag_answer.png)
 
-*The RAG tab with "Deep Work.pdf" indexed (190 pages · 591 chunks); the question "How does deep work help people learn difficult things?" is answered with four source citations.*
+*The RAG tab with "Deep Work.pdf" indexed (190 pages, 591 chunks); the question "How does deep work help people learn difficult things?" is answered with four source citations.*
 
 ![RAG answer example 2](docs/assets/rag_answer2.png)
 
@@ -459,5 +459,4 @@ A sample generated research report is available at [docs/assets/Report.pdf](docs
 
 ---
 
-Built with Python, FastAPI, LangGraph, Streamlit and modern retrieval techniques.
 Built with Python, FastAPI, LangGraph, Streamlit and modern retrieval techniques.
