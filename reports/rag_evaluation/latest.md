@@ -1,10 +1,10 @@
 # ResearchAI RAG Evaluation
 
-Generated: 2026-11-12T17:22:34.371632+00:00
+Generated: 2026-11-12T17:52:25.637595+00:00
 
 ## Reproducibility
 
-- Git commit SHA: `ce11bfdd1efd8bfc30d0085e3d234c36c0dbe308`
+- Git commit SHA: `c80a1cc1ba408f8df0141b0d5542987bff75ba28`
 - Python version: `3.13.16`
 - Lock file SHA-256: `45aae886568727a19bd9cccf963e2a4cfa53f614625c1cfd5f6927c1a5265996`
 - Dataset SHA-256: `f3b5c9fd41e16e9cf0e2526b85d42bd262f0b3f3f7c9151db94dc0af4c66abfb`
@@ -18,10 +18,10 @@ Generated: 2026-11-12T17:22:34.371632+00:00
 
 | Method | P@5 | R@5 | MRR | nDCG@5 | Mean latency (ms) |
 |---|---:|---:|---:|---:|---:|
-| Vector | 0.3176 | 0.6255 | 0.8235 | 0.6405 | 93.0340 |
-| BM25 | 0.3529 | 0.6941 | 0.8137 | 0.7309 | 69.6950 |
-| Hybrid RRF | 0.3647 | 0.7059 | 0.8529 | 0.7229 | 100.1490 |
-| Hybrid + CrossEncoder | 0.4235 | 0.8137 | 0.8824 | 0.8071 | 1003.3870 |
+| Vector | 0.3176 | 0.6255 | 0.8235 | 0.6405 | 86.6830 |
+| BM25 | 0.3529 | 0.6941 | 0.8137 | 0.7309 | 75.7250 |
+| Hybrid RRF | 0.3647 | 0.7059 | 0.8529 | 0.7229 | 92.0220 |
+| Hybrid + CrossEncoder | 0.4235 | 0.8137 | 0.8824 | 0.8071 | 1044.3910 |
 
 ## Pipeline comparison
 

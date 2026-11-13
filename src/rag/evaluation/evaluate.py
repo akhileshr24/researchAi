@@ -13,6 +13,7 @@ summary and a Markdown report.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import subprocess
@@ -23,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from statistics import fmean
 
+from src.config import settings
 from src.config.settings import RERANK_CANDIDATES
 from src.rag.bm25_retriever import search_bm25
 from src.rag.evaluation.dataset import (
@@ -175,8 +177,20 @@ def reproducibility_metadata() -> dict[str, str]:
     }
 
 
-def retrieve(method: str, question: str) -> list[dict]:
-    """Run one retrieval method and return its final top-k chunks."""
+def retrieve(
+    method: str,
+    question: str,
+    rrf_k: int | None = None,
+    vector_weight: float = 1.0,
+    bm25_weight: float = 1.0,
+) -> list[dict]:
+    """Run one retrieval method and return its final top-k chunks.
+
+    ``rrf_k`` defaults to ``settings.RRF_K`` when not given; the weights
+    default to the original unweighted RRF behaviour.
+    """
+    effective_rrf_k = rrf_k if rrf_k is not None else settings.RRF_K
+
     if method == "vector":
         return search(
             question,
@@ -192,6 +206,9 @@ def retrieve(method: str, question: str) -> list[dict]:
             question,
             top_k=EVAL_TOP_K,
             candidate_k=CANDIDATE_LIMIT,
+            rrf_k=effective_rrf_k,
+            vector_weight=vector_weight,
+            bm25_weight=bm25_weight,
         )
 
     if method == "hybrid_rerank":
@@ -199,13 +216,21 @@ def retrieve(method: str, question: str) -> list[dict]:
             question,
             top_k=CANDIDATE_LIMIT,
             candidate_k=CANDIDATE_LIMIT,
+            rrf_k=effective_rrf_k,
+            vector_weight=vector_weight,
+            bm25_weight=bm25_weight,
         )
         return rerank(question, candidates, top_k=EVAL_TOP_K)
 
     raise ValueError(f"Unknown retrieval method: {method}")
 
 
-def evaluate_question(question: EvaluationQuestion) -> QuestionResult:
+def evaluate_question(
+    question: EvaluationQuestion,
+    rrf_k: int | None = None,
+    vector_weight: float = 1.0,
+    bm25_weight: float = 1.0,
+) -> QuestionResult:
     """Evaluate every retrieval method independently for one question."""
     relevance = question.relevance_grades()
     relevant_keys = set(relevance)
@@ -213,7 +238,13 @@ def evaluate_question(question: EvaluationQuestion) -> QuestionResult:
 
     for method_name, method_id in METHODS:
         started = time.perf_counter()
-        chunks = retrieve(method_id, question.question)
+        chunks = retrieve(
+            method_id,
+            question.question,
+            rrf_k=rrf_k,
+            vector_weight=vector_weight,
+            bm25_weight=bm25_weight,
+        )
         latency_ms = round((time.perf_counter() - started) * 1000.0, 3)
         retrieved_keys = [_chunk_key(chunk) for chunk in chunks]
 
@@ -306,8 +337,18 @@ def aggregate_metrics(
 def build_report(
     results: list[QuestionResult],
     aggregate: dict[str, dict[str, float]],
+    rrf_k: int | None = None,
+    vector_weight: float = 1.0,
+    bm25_weight: float = 1.0,
 ) -> dict:
-    """Build the JSON-serializable evaluation report."""
+    """Build the JSON-serializable evaluation report.
+
+    ``rrf_k`` defaults to ``settings.RRF_K``; the weights default to the
+    original unweighted RRF behaviour. The effective values are recorded
+    in the configuration block.
+    """
+    effective_rrf_k = rrf_k if rrf_k is not None else settings.RRF_K
+
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "labels_verified": LABELS_VERIFIED,
@@ -316,6 +357,9 @@ def build_report(
             "top_k": EVAL_TOP_K,
             "candidate_limit": CANDIDATE_LIMIT,
             "vector_min_score": VECTOR_MIN_SCORE,
+            "rrf_k": effective_rrf_k,
+            "vector_weight": vector_weight,
+            "bm25_weight": bm25_weight,
             "methods": [name for name, _ in METHODS],
         },
         "reproducibility": reproducibility_metadata(),
@@ -436,35 +480,91 @@ def print_question_results(results: list[QuestionResult]) -> None:
             )
 
 
-def main() -> None:
-    """Run the evaluation and generate all three reports from one run."""
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse CLI arguments for the evaluation entry point."""
+    parser = argparse.ArgumentParser(
+        description="Run the RAG evaluation and generate reports.",
+    )
+    parser.add_argument(
+        "--out",
+        metavar="DIR",
+        type=Path,
+        default=None,
+        help=(
+            "Write evaluation_results.json, evaluation_summary.json and "
+            "latest.md into DIR instead of the default reports/rag_evaluation/."
+        ),
+    )
+    parser.add_argument(
+        "--rrf-k",
+        type=int,
+        default=None,
+        help="RRF constant K for the hybrid methods (default: settings.RRF_K).",
+    )
+    parser.add_argument(
+        "--vector-weight",
+        type=float,
+        default=1.0,
+        help="Weight of the vector branch in weighted RRF (default: 1.0).",
+    )
+    parser.add_argument(
+        "--bm25-weight",
+        type=float,
+        default=1.0,
+        help="Weight of the BM25 branch in weighted RRF (default: 1.0).",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the evaluation and generate the three reports from one run.
+
+    Returns 0 on success; failures raise, which the interpreter turns into
+    a non-zero exit code.
+    """
+    args = parse_args(argv)
     questions = get_questions()
     chunks = get_all_chunks()
     validate_dataset(questions, {_chunk_key(chunk) for chunk in chunks})
 
-    results = [evaluate_question(question) for question in questions]
+    results = [
+        evaluate_question(
+            question,
+            rrf_k=args.rrf_k,
+            vector_weight=args.vector_weight,
+            bm25_weight=args.bm25_weight,
+        )
+        for question in questions
+    ]
     aggregate = aggregate_metrics(results)
-    report = build_report(results, aggregate)
+    report = build_report(
+        results,
+        aggregate,
+        rrf_k=args.rrf_k,
+        vector_weight=args.vector_weight,
+        bm25_weight=args.bm25_weight,
+    )
     summary = build_summary(report, corpus_chunks=len(chunks))
 
     print_summary(aggregate)
     print_question_results(results)
 
-    REPORT_DIR.mkdir(parents=True, exist_ok=True)
+    out_dir = args.out if args.out is not None else REPORT_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    REPORT_PATH.write_text(
+    (out_dir / "evaluation_results.json").write_text(
         json.dumps(report, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
-    SUMMARY_PATH.write_text(
+    (out_dir / "evaluation_summary.json").write_text(
         json.dumps(summary, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
-    write_markdown_report(MARKDOWN_PATH, report, corpus_chunks=len(chunks))
+    write_markdown_report(out_dir / "latest.md", report, corpus_chunks=len(chunks))
 
-    print(f"\nJSON report: {REPORT_PATH}")
-    print(f"JSON summary: {SUMMARY_PATH}")
-    print(f"Markdown report: {MARKDOWN_PATH}")
+    print(f"\nJSON report: {out_dir / 'evaluation_results.json'}")
+    print(f"JSON summary: {out_dir / 'evaluation_summary.json'}")
+    print(f"Markdown report: {out_dir / 'latest.md'}")
 
     if not LABELS_VERIFIED:
         print(
@@ -472,6 +572,8 @@ def main() -> None:
             "verification before metrics are treated as final."
         )
 
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

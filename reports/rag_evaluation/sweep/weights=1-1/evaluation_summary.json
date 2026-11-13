@@ -1,0 +1,55 @@
+{
+  "generated_at": "2026-11-12T18:19:17.691693+00:00",
+  "dataset_size": 17,
+  "corpus_chunks": 604,
+  "configuration": {
+    "top_k": 5,
+    "candidate_limit": 20,
+    "vector_min_score": 0.0,
+    "rrf_k": 60,
+    "vector_weight": 1.0,
+    "bm25_weight": 1.0,
+    "methods": [
+      "Vector",
+      "BM25",
+      "Hybrid RRF",
+      "Hybrid + Cross-Encoder"
+    ]
+  },
+  "reproducibility": {
+    "git_commit_sha": "c80a1cc1ba408f8df0141b0d5542987bff75ba28",
+    "python_version": "3.13.16",
+    "lock_file_sha256": "45aae886568727a19bd9cccf963e2a4cfa53f614625c1cfd5f6927c1a5265996",
+    "dataset_sha256": "f3b5c9fd41e16e9cf0e2526b85d42bd262f0b3f3f7c9151db94dc0af4c66abfb"
+  },
+  "aggregate_metrics": {
+    "Vector": {
+      "precision@5": 0.31764705882352945,
+      "recall@5": 0.6254901960784314,
+      "mrr": 0.8235294117647058,
+      "ndcg@5": 0.6405354341057558,
+      "mean_latency_ms": 93.161
+    },
+    "BM25": {
+      "precision@5": 0.35294117647058826,
+      "recall@5": 0.6941176470588236,
+      "mrr": 0.8137254901960784,
+      "ndcg@5": 0.7309117149530552,
+      "mean_latency_ms": 89.678
+    },
+    "Hybrid RRF": {
+      "precision@5": 0.3647058823529412,
+      "recall@5": 0.7058823529411765,
+      "mrr": 0.8529411764705882,
+      "ndcg@5": 0.7228972878950276,
+      "mean_latency_ms": 104.676
+    },
+    "Hybrid + Cross-Encoder": {
+      "precision@5": 0.4235294117647059,
+      "recall@5": 0.8137254901960784,
+      "mrr": 0.8823529411764706,
+      "ndcg@5": 0.8070934739162525,
+      "mean_latency_ms": 1129.081
+    }
+  }
+}

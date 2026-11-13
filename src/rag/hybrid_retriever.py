@@ -1,5 +1,7 @@
 """Combine vector and BM25 rankings with Reciprocal Rank Fusion."""
 
+import math
+
 from src.config.settings import RERANK_CANDIDATES, RRF_K, TOP_K
 from src.rag.bm25_retriever import search_bm25
 from src.rag.vectorstore import search
@@ -11,8 +13,29 @@ def search_hybrid(
     candidate_k: int | None = None,
     rrf_k: int = RRF_K,
     document_id: str | None = None,
+    vector_weight: float = 1.0,
+    bm25_weight: float = 1.0,
 ) -> list[dict]:
-    """Fuse vector and BM25 results by summing ``1 / (rrf_k + rank)``."""
+    """Fuse vector and BM25 results with weighted Reciprocal Rank Fusion.
+
+    Each branch contributes ``weight / (rrf_k + rank)`` with 1-based
+    ranks; a chunk missing from one branch contributes zero for that
+    branch. Defaults (``rrf_k=settings.RRF_K``, both weights 1.0) keep
+    the original unweighted behaviour.
+    """
+    if rrf_k <= 0:
+        raise ValueError(f"rrf_k must be positive, got {rrf_k}")
+    if not math.isfinite(vector_weight) or vector_weight <= 0:
+        raise ValueError(
+            f"vector_weight must be a finite positive number, "
+            f"got {vector_weight!r}"
+        )
+    if not math.isfinite(bm25_weight) or bm25_weight <= 0:
+        raise ValueError(
+            f"bm25_weight must be a finite positive number, "
+            f"got {bm25_weight!r}"
+        )
+
     if candidate_k is None:
         candidate_k = RERANK_CANDIDATES
 
@@ -32,11 +55,11 @@ def search_hybrid(
 
     fused = {}
     rankings = [
-        ("vector", vector_results),
-        ("bm25", bm25_results),
+        ("vector", vector_results, vector_weight),
+        ("bm25", bm25_results, bm25_weight),
     ]
 
-    for retriever, results in rankings:
+    for retriever, results, weight in rankings:
         for rank, chunk in enumerate(results, start=1):
             key = (chunk["document_id"], chunk["chunk_index"])
             entry = fused.setdefault(key, {
@@ -51,7 +74,7 @@ def search_hybrid(
                 "retriever_scores": {},
             })
 
-            entry["rrf_score"] += 1 / (rrf_k + rank)
+            entry["rrf_score"] += weight / (rrf_k + rank)
             entry["retrievers"].add(retriever)
             entry["retriever_scores"][retriever] = chunk["score"]
 

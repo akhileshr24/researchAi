@@ -4,12 +4,15 @@ All retrieval is monkeypatched with deterministic fake chunks: no ChromaDB,
 no embedding models, no cross-encoder models and no external APIs.
 """
 
+import json
 import re
 import sys
 from hashlib import sha256
+from pathlib import Path
 
 import pytest
 
+from src.config import settings as settings_module
 from src.rag.evaluation import evaluate, report
 from src.rag.evaluation.dataset import EvaluationQuestion, RelevanceLabel
 
@@ -44,7 +47,7 @@ def _question() -> EvaluationQuestion:
     )
 
 
-def _mixed_retrieval(method: str, question: str) -> list[dict]:
+def _mixed_retrieval(method: str, question: str, **kwargs) -> list[dict]:
     """Deterministic per-method retrieval with some relevant chunks."""
     return [
         _chunk(chunk_index=0, text="first relevant chunk"),
@@ -54,7 +57,7 @@ def _mixed_retrieval(method: str, question: str) -> list[dict]:
     ]
 
 
-def _irrelevant_retrieval(method: str, question: str) -> list[dict]:
+def _irrelevant_retrieval(method: str, question: str, **kwargs) -> list[dict]:
     """Deterministic retrieval with no relevant chunks."""
     return [
         _chunk(document_id="doc-z", chunk_index=7),
@@ -215,6 +218,9 @@ def test_report_configuration_and_reproducibility(monkeypatch):
         "top_k": 5,
         "candidate_limit": 20,
         "vector_min_score": 0.0,
+        "rrf_k": settings_module.RRF_K,
+        "vector_weight": 1.0,
+        "bm25_weight": 1.0,
         "methods": list(METHOD_NAMES),
     }
     assert set(report_dict["reproducibility"]) == {
@@ -392,6 +398,280 @@ def test_git_commit_sha_error_returns_empty(monkeypatch):
 
 def test_python_version_matches_interpreter():
     assert evaluate._python_version() == sys.version.split()[0]
+
+
+def test_report_rrf_k_matches_settings(monkeypatch):
+    # build_report reads `settings.RRF_K` (module attribute) at call time;
+    # evaluate.py imports it as `from src.config import settings`, so the
+    # monkeypatch target `src.config.settings.RRF_K` is the same object.
+    monkeypatch.setattr("src.config.settings.RRF_K", 17)
+
+    report_dict = _built_report(monkeypatch)
+
+    assert report_dict["configuration"]["rrf_k"] == 17
+
+
+def test_report_records_actual_rrf_parameters(monkeypatch):
+    result = _evaluated(monkeypatch, _mixed_retrieval)
+    aggregate = evaluate.aggregate_metrics([result])
+
+    report_dict = evaluate.build_report(
+        [result],
+        aggregate,
+        rrf_k=30,
+        vector_weight=2.0,
+        bm25_weight=1.0,
+    )
+
+    configuration = report_dict["configuration"]
+
+    assert configuration["rrf_k"] == 30
+    assert configuration["vector_weight"] == 2.0
+    assert configuration["bm25_weight"] == 1.0
+
+
+def test_report_defaults_use_settings_rrf_k_and_unit_weights(monkeypatch):
+    report_dict = _built_report(monkeypatch)
+    configuration = report_dict["configuration"]
+
+    assert configuration["rrf_k"] == settings_module.RRF_K
+    assert configuration["vector_weight"] == 1.0
+    assert configuration["bm25_weight"] == 1.0
+
+
+# ---------- retrieve() parameter propagation ----------
+
+
+def _record_search_hybrid(monkeypatch, candidates: list[dict]) -> dict:
+    """Stub evaluate.search_hybrid and return the recording dict."""
+    calls: dict = {}
+
+    def fake_search_hybrid(
+        question,
+        top_k,
+        candidate_k=None,
+        rrf_k=None,
+        document_id=None,
+        vector_weight=1.0,
+        bm25_weight=1.0,
+    ):
+        calls["question"] = question
+        calls["top_k"] = top_k
+        calls["candidate_k"] = candidate_k
+        calls["rrf_k"] = rrf_k
+        calls["vector_weight"] = vector_weight
+        calls["bm25_weight"] = bm25_weight
+        return candidates
+
+    monkeypatch.setattr(evaluate, "search_hybrid", fake_search_hybrid)
+    return calls
+
+
+def test_retrieve_hybrid_propagates_rrf_parameters(monkeypatch):
+    calls = _record_search_hybrid(monkeypatch, [])
+
+    result = evaluate.retrieve(
+        "hybrid",
+        "What is RAG?",
+        rrf_k=30,
+        vector_weight=2.0,
+        bm25_weight=0.5,
+    )
+
+    assert result == []
+    assert calls == {
+        "question": "What is RAG?",
+        "top_k": 5,
+        "candidate_k": 20,
+        "rrf_k": 30,
+        "vector_weight": 2.0,
+        "bm25_weight": 0.5,
+    }
+
+
+def test_retrieve_hybrid_defaults_use_settings_and_unit_weights(monkeypatch):
+    calls = _record_search_hybrid(monkeypatch, [])
+
+    evaluate.retrieve("hybrid", "What is RAG?")
+
+    assert calls["top_k"] == 5
+    assert calls["candidate_k"] == 20
+    assert calls["rrf_k"] == settings_module.RRF_K
+    assert calls["vector_weight"] == 1.0
+    assert calls["bm25_weight"] == 1.0
+
+
+def test_retrieve_hybrid_rerank_propagates_rrf_parameters(monkeypatch):
+    calls = _record_search_hybrid(
+        monkeypatch,
+        [{"document_id": "doc-a", "chunk_index": 0}],
+    )
+    reranked = [
+        {"document_id": "doc-a", "chunk_index": 0, "rerank_score": 0.9},
+    ]
+    rerank_calls: dict = {}
+
+    def fake_rerank(query, candidates, top_k=None):
+        rerank_calls["query"] = query
+        rerank_calls["candidates"] = candidates
+        rerank_calls["top_k"] = top_k
+        return reranked
+
+    monkeypatch.setattr(evaluate, "rerank", fake_rerank)
+
+    result = evaluate.retrieve(
+        "hybrid_rerank",
+        "What is RAG?",
+        rrf_k=45,
+        vector_weight=0.5,
+        bm25_weight=2.0,
+    )
+
+    assert result == reranked  # reranker output returned unchanged
+    assert calls == {
+        "question": "What is RAG?",
+        "top_k": 20,
+        "candidate_k": 20,
+        "rrf_k": 45,
+        "vector_weight": 0.5,
+        "bm25_weight": 2.0,
+    }
+    assert rerank_calls == {
+        "query": "What is RAG?",
+        "candidates": [{"document_id": "doc-a", "chunk_index": 0}],
+        "top_k": 5,
+    }
+
+
+def test_retrieve_hybrid_rerank_defaults_use_settings_and_unit_weights(
+    monkeypatch,
+):
+    calls = _record_search_hybrid(monkeypatch, [])
+    monkeypatch.setattr(evaluate, "rerank", lambda *args, **kwargs: [])
+
+    evaluate.retrieve("hybrid_rerank", "What is RAG?")
+
+    assert calls["top_k"] == 20
+    assert calls["candidate_k"] == 20
+    assert calls["rrf_k"] == settings_module.RRF_K
+    assert calls["vector_weight"] == 1.0
+    assert calls["bm25_weight"] == 1.0
+
+
+# ---------- CLI arguments ----------
+
+
+def test_parse_args_defaults_to_none_out():
+    args = evaluate.parse_args([])
+
+    assert args.out is None
+
+
+def test_parse_args_accepts_out_path():
+    args = evaluate.parse_args(["--out", "reports/rag_evaluation/sweep/x"])
+
+    assert args.out == Path("reports/rag_evaluation/sweep/x")
+
+
+def _baseline_report_hashes() -> dict[str, str]:
+    """SHA-256 of the three real baseline reports (protection check)."""
+    names = (
+        "evaluation_results.json",
+        "evaluation_summary.json",
+        "latest.md",
+    )
+    return {
+        name: sha256(
+            (Path("reports/rag_evaluation") / name).read_bytes()
+        ).hexdigest()
+        for name in names
+    }
+
+
+def _stub_main_env(monkeypatch) -> None:
+    """Make evaluate.main() runnable without ChromaDB or models."""
+    monkeypatch.setattr(evaluate, "get_questions", lambda: [_question()])
+    monkeypatch.setattr(
+        evaluate,
+        "get_all_chunks",
+        lambda: [
+            _chunk(document_id="doc-a", chunk_index=0, text="relevant one"),
+            _chunk(document_id="doc-a", chunk_index=1, text="relevant two"),
+        ],
+    )
+    monkeypatch.setattr(
+        evaluate,
+        "evaluate_question",
+        lambda question, **kwargs: _question_result(
+            question.question_id,
+            {key: 0.0 for key in METRIC_KEYS},
+        ),
+    )
+
+
+def test_cli_out_writes_three_files_into_dir(tmp_path, monkeypatch):
+    _stub_main_env(monkeypatch)
+    out_dir = tmp_path / "sweep"
+    before = _baseline_report_hashes()
+
+    exit_code = evaluate.main(["--out", str(out_dir)])
+
+    after = _baseline_report_hashes()
+
+    assert exit_code == 0
+    assert (out_dir / "evaluation_results.json").is_file()
+    assert (out_dir / "evaluation_summary.json").is_file()
+    assert (out_dir / "latest.md").is_file()
+    assert after == before  # default reports untouched
+
+    results = json.loads(
+        (out_dir / "evaluation_results.json").read_text(encoding="utf-8")
+    )
+    assert results["configuration"]["rrf_k"] == settings_module.RRF_K
+
+
+def test_cli_rrf_parameters_are_recorded_in_saved_reports(tmp_path, monkeypatch):
+    _stub_main_env(monkeypatch)
+    out_dir = tmp_path / "sweep"
+    before = _baseline_report_hashes()
+
+    exit_code = evaluate.main([
+        "--out", str(out_dir),
+        "--rrf-k", "45",
+        "--vector-weight", "0.5",
+        "--bm25-weight", "2",
+    ])
+    after = _baseline_report_hashes()
+
+    assert exit_code == 0
+    assert after == before  # baseline untouched
+
+    results = json.loads(
+        (out_dir / "evaluation_results.json").read_text(encoding="utf-8")
+    )
+    configuration = results["configuration"]
+
+    assert configuration["rrf_k"] == 45
+    assert configuration["vector_weight"] == 0.5
+    assert configuration["bm25_weight"] == 2.0
+
+
+def test_cli_without_out_writes_to_default_dir(tmp_path, monkeypatch):
+    _stub_main_env(monkeypatch)
+    monkeypatch.setattr(evaluate, "REPORT_DIR", tmp_path)  # never touches real dir
+
+    exit_code = evaluate.main([])
+
+    assert exit_code == 0
+    assert (tmp_path / "evaluation_results.json").is_file()
+    assert (tmp_path / "evaluation_summary.json").is_file()
+    assert (tmp_path / "latest.md").is_file()
+    assert not (tmp_path / "sweep").exists()  # no --out dir was created
+
+    results = json.loads(
+        (tmp_path / "evaluation_results.json").read_text(encoding="utf-8")
+    )
+    assert results["configuration"]["rrf_k"] == settings_module.RRF_K
 
 
 # ---------- Markdown report ----------
